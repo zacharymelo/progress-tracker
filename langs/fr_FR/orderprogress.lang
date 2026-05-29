@@ -27,7 +27,7 @@ OrderProgressSupplierProposalCreated = Demande créée
 OrderProgressSupplierOrderCreated = Commande créée
 OrderProgressSupplierOrderApproved = Commande approuvée
 OrderProgressSupplierOrderSent = Commande passée
-OrderProgressReception = Réception effectuée
+OrderProgressReception = Marchandises reçues
 OrderProgressSupplierInvoiceReceived = Facture reçue
 OrderProgressSupplierInvoicePaid = Facture payée
 

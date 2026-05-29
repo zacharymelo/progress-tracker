@@ -128,6 +128,16 @@ class ActionsOrderprogress
 			return 0;
 		}
 
+		// Guard against formObjectOptions being called more than once per request
+		// for the same anchor object (can happen on expedition/shipment cards with
+		// multiple third-party linked records).
+		static $rendered = array();
+		$renderKey = $object->element.':'.$object->id;
+		if (isset($rendered[$renderKey])) {
+			return 0;
+		}
+		$rendered[$renderKey] = true;
+
 		$mapping = $this->mapElement($object->element);
 		if ($mapping === null) {
 			return 0;

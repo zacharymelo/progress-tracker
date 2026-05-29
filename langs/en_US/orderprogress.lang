@@ -27,7 +27,7 @@ OrderProgressSupplierProposalCreated = Request created
 OrderProgressSupplierOrderCreated = Order created
 OrderProgressSupplierOrderApproved = Order approved
 OrderProgressSupplierOrderSent = Order placed
-OrderProgressReception = Reception completed
+OrderProgressReception = Goods received
 OrderProgressSupplierInvoiceReceived = Invoice received
 OrderProgressSupplierInvoicePaid = Invoice paid
 

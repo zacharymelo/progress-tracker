@@ -160,6 +160,18 @@ class OrderProgressResolver
 	 *  @param  array   $visited  Already-visited keys (by reference semantics via return)
 	 *  @return void
 	 */
+	/**
+	 *  Normalized element types we understand. Any linked document whose element
+	 *  does not appear here (e.g. a third-party warranty or service record) is
+	 *  silently skipped so it cannot contaminate our collected chain.
+	 *
+	 *  @var string[]
+	 */
+	private static $supportedElements = array(
+		'propal', 'commande', 'facture', 'shipping',
+		'supplier_proposal', 'order_supplier', 'invoice_supplier', 'reception',
+	);
+
 	private function collectChain($object, $depth, $visited)
 	{
 		if (!is_object($object) || empty($object->id) || empty($object->element)) {
@@ -167,6 +179,14 @@ class OrderProgressResolver
 		}
 
 		$type = $this->normalizeElement($object->element);
+
+		// Ignore element types we don't model — this prevents third-party module
+		// objects (warranty records, service requests, …) from being collected
+		// and from having their own linked documents pulled into our chain.
+		if (!in_array($type, self::$supportedElements)) {
+			return;
+		}
+
 		$key = $type.'_'.$object->id;
 		if (isset($visited[$key])) {
 			return;
@@ -465,31 +485,28 @@ class OrderProgressResolver
 	}
 
 	/**
-	 *  Compute the "current" step: the first pending step following the last
-	 *  completed step. Skipped steps never become current.
+	 *  Compute the "current" step: the first pending step in sequence, scanning
+	 *  from the beginning. This respects the natural order of the flow —
+	 *  a later step that happens to be complete (e.g. an invoice raised before
+	 *  reception is confirmed) does not cause us to skip over a still-pending
+	 *  earlier step. Skipped steps are passed over. A step already marked
+	 *  STATE_CURRENT (e.g. a partially-paid invoice) halts the scan.
 	 *
 	 *  @param  array  $steps  Steps with raw states
 	 *  @return array           Steps with one possibly promoted to 'current'
 	 */
 	private function markCurrent($steps)
 	{
-		$lastComplete = -1;
 		foreach ($steps as $i => $s) {
-			if ($s['state'] === self::STATE_COMPLETE) {
-				$lastComplete = $i;
+			if ($s['state'] === self::STATE_CURRENT) {
+				// Already marked (e.g. partial payment) — leave everything as-is.
+				break;
 			}
-		}
-
-		// Promote the first pending step after the last completed one.
-		for ($i = $lastComplete + 1; $i < count($steps); $i++) {
-			if ($steps[$i]['state'] === self::STATE_PENDING) {
+			if ($s['state'] === self::STATE_PENDING) {
 				$steps[$i]['state'] = self::STATE_CURRENT;
 				break;
 			}
-			// Skip over skipped/current steps to find the real next pending one.
-			if ($steps[$i]['state'] === self::STATE_CURRENT) {
-				break;
-			}
+			// STATE_COMPLETE and STATE_SKIPPED are passed over.
 		}
 
 		return $steps;
@@ -603,7 +620,7 @@ class OrderProgressResolver
 					'url' => '/fourn/commande/card.php?id='.$soId, 'perm' => $soCreer,
 				) : null,
 				'reception_done' => (!$recId && $soId) ? array(
-					'url' => '/reception/card.php?action=create&origin=order_supplier&origin_id='.$soId, 'perm' => array(array('reception', 'creer')),
+					'url' => '/reception/card.php?action=create&origin=commande_fournisseur&origin_id='.$soId, 'perm' => array(array('reception', 'creer')),
 				) : null,
 				'invoice_received' => (!$siId && $soId) ? array(
 					'url' => '/fourn/facture/card.php?action=create&origin=order_supplier&originid='.$soId.'&origin_id='.$soId.$socParam, 'perm' => $siCreer,
