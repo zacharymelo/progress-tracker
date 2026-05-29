@@ -161,7 +161,7 @@ class modOrderProgress extends DolibarrModules
 		// Permissions provided by this module
 		$this->rights = array();
 		$r = 0;
-		$this->rights[$r][0] = $this->numero + $r; // id of permission (unique)
+		$this->rights[$r][0] = $this->numero.sprintf("%02d", $r + 1); // unique permission id (e.g. 50012001)
 		$this->rights[$r][1] = 'See the order progress tracker'; // label
 		$this->rights[$r][3] = 1; // 1 = enabled by default for everyone
 		$this->rights[$r][4] = 'read';
