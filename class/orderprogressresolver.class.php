@@ -585,8 +585,8 @@ class OrderProgressResolver
 				'invoice_created' => (!$invId && $orderId) ? array(
 					'url' => '/compta/facture/card.php?action=create&origin=commande&originid='.$orderId.'&origin_id='.$orderId.$socParam, 'perm' => array(array('facture', 'creer')),
 				) : null,
-				'invoice_paid' => $invId ? array(
-					'url' => '/compta/paiement/card.php?action=create&facid='.($unpaidInvId ?: $invId), 'perm' => array(array('facture', 'paiement'), array('facture', 'creer')),
+				'invoice_paid' => ($unpaidInvId ?: $invId) ? array(
+					'url' => '/compta/facture/card.php?id='.($unpaidInvId ?: $invId), 'perm' => array(array('facture', 'lire')),
 				) : null,
 				// order_closed: no action link — closing is done via the native
 				// button on the order card itself; linking back to the same page
