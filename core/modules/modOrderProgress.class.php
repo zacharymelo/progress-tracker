@@ -69,7 +69,7 @@ class modOrderProgress extends DolibarrModules
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr',
 		// 'dolibarr_deprecated' or a version string like 'x.y.z'.
-		$this->version = '1.2.1';
+		$this->version = '1.3.0';
 
 		// Key used in llx_const table to save module status enabled/disabled
 		// (where MYMODULE is value of property name of module in uppercase)
@@ -113,7 +113,6 @@ class modOrderProgress extends DolibarrModules
 				'invoicesuppliercard', // supplier invoice card
 				'receptioncard',       // supplier reception card
 				'expeditioncard',      // shipment/delivery card
-				'projectcard',         // project / lead card
 			),
 			// Set this to 1 if features of module are opened to external users
 			'moduleforexternal' => 0,
@@ -139,7 +138,6 @@ class modOrderProgress extends DolibarrModules
 		// Constants. Default configuration values set on activation.
 		// Each entry: name, type, value, note, visible, entity, deleteonunactive.
 		$this->const = array(
-			array('ORDERPROGRESS_ENABLE_PROJECT', 'chaine', '1', 'Show lead tracker on project/opportunity card', 0),
 			array('ORDERPROGRESS_ENABLE_ORDER', 'chaine', '1', 'Show tracker on customer order card', 0),
 			array('ORDERPROGRESS_ENABLE_SUPPLIER_ORDER', 'chaine', '1', 'Show tracker on supplier order card', 0),
 			array('ORDERPROGRESS_ENABLE_PROPAL', 'chaine', '1', 'Show tracker on customer proposal card', 0),

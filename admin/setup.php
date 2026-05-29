@@ -66,7 +66,6 @@ $backtopage = GETPOST('backtopage', 'alpha');
 
 // List of all configuration keys handled by this page, with their input type.
 $boolKeys = array(
-	'ORDERPROGRESS_ENABLE_PROJECT',
 	'ORDERPROGRESS_ENABLE_ORDER',
 	'ORDERPROGRESS_ENABLE_SUPPLIER_ORDER',
 	'ORDERPROGRESS_ENABLE_PROPAL',
@@ -165,7 +164,6 @@ print '<table class="noborder centpercent">';
 print '<tr class="liste_titre"><td>'.$langs->trans("OrderProgressEnabledObjects").'</td><td class="center" width="120">'.$langs->trans("Status").'</td></tr>';
 
 $objectRows = array(
-	'ORDERPROGRESS_ENABLE_PROJECT'           => 'OrderProgressEnableProject',
 	'ORDERPROGRESS_ENABLE_ORDER'             => 'OrderProgressEnableOrder',
 	'ORDERPROGRESS_ENABLE_SUPPLIER_ORDER'    => 'OrderProgressEnableSupplierOrder',
 	'ORDERPROGRESS_ENABLE_PROPAL'            => 'OrderProgressEnablePropal',

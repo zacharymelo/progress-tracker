@@ -47,19 +47,10 @@ OrderProgressSupplierInvoiceReceivedTodo = To book invoice
 OrderProgressSupplierInvoicePaid = Paid
 OrderProgressSupplierInvoicePaidTodo = To pay
 
-# Step labels - lead / opportunity flow (project card)
-LeadProgressContacted = Contacted
-LeadProgressContactedTodo = To contact
-LeadProgressWon = Won
-LeadProgressWonNeedDoc = Create order
-LeadProgressLost = Lost
-LeadProgressCloseTodo = Close deal
-
 # Setup page
 OrderProgressSetup = Order Progress Tracker setup
 OrderProgressSetupPage = Configure where the progress tracker is shown and how it looks.
 OrderProgressEnabledObjects = Show tracker on these object types
-OrderProgressEnableProject = Leads / opportunities (project cards)
 OrderProgressEnableOrder = Customer orders
 OrderProgressEnableSupplierOrder = Supplier orders
 OrderProgressEnablePropal = Customer quotations
