@@ -61,7 +61,8 @@ if (!$user->admin) {
 }
 
 // Parameters
-$action = GETPOST('action', 'aZ09');
+$action     = GETPOST('action', 'aZ09');
+$backtopage = GETPOST('backtopage', 'alpha');
 
 // List of all configuration keys handled by this page, with their input type.
 $boolKeys = array(

@@ -270,7 +270,7 @@ class ActionsOrderprogress
 			." var content = holder.children('.orderprogress-tracker');\n"
 			." if (!content.length) { holder.remove(); return; }\n"
 			." var anchor = jQuery('div.arearef').first();\n"
-			." if (anchor.length) { anchor.after(content); }\n"
+			." if (anchor.length) { anchor.before(content); }\n"
 			." else { var c = jQuery('div.fichecenter').first();\n"
 			."   if (c.length) { c.prepend(content); }\n"
 			."   else { jQuery('div.tabBar').first().prepend(content); } }\n"
