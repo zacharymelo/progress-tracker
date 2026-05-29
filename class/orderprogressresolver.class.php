@@ -48,6 +48,12 @@ class OrderProgressResolver
 	/** @var int Third-party id of the anchor object (to seed create forms) */
 	public $anchorSocid = 0;
 
+	/** @var string Normalized element type of the page's primary object */
+	public $anchorElement = '';
+
+	/** @var int ID of the page's primary object */
+	public $anchorId = 0;
+
 	/** State constants */
 	const STATE_COMPLETE = 'complete';
 	const STATE_CURRENT  = 'current';
@@ -110,9 +116,11 @@ class OrderProgressResolver
 			return array();
 		}
 
-		// Remember the third-party of the anchor object so we can seed native
-		// "create" forms (action links) with the right customer/supplier.
-		$this->anchorSocid = 0;
+		// Remember the anchor object's identity and third-party so we can seed
+		// native "create" forms and make anchor-specific decisions in build methods.
+		$this->anchorElement = $this->normalizeElement($objectType);
+		$this->anchorId      = (int) $object->id;
+		$this->anchorSocid   = 0;
 		if (isset($object->socid) && $object->socid > 0) {
 			$this->anchorSocid = (int) $object->socid;
 		} elseif (isset($object->fk_soc) && $object->fk_soc > 0) {
@@ -298,12 +306,19 @@ class OrderProgressResolver
 			$s = OrderProgressResolver::statusOf($o);
 			return ($s === 2 /*Propal::STATUS_SIGNED*/ || $s === 4 /*Propal::STATUS_BILLED*/);
 		});
-		$pRefused = $this->pickDoc($propals, function ($o) {
-			return OrderProgressResolver::statusOf($o) === -1; /*Propal::STATUS_NOTSIGNED*/
-		});
-		// A refused proposal voids the downstream flow — but only when no signed
-		// proposal also exists (a signed revision overrides a refused earlier draft).
-		$proposalRefused = ($pRefused !== null && $pSigned === null && !$proposalSkipped);
+
+		// A refused proposal voids the downstream flow, but ONLY when the anchor
+		// object (the card being viewed) is itself the refused proposal.  We must
+		// not scan all collected propals: collectChain may have pulled in a linked
+		// signed revision which would incorrectly suppress the refused flag.
+		$anchorPropal = ($this->anchorElement === 'propal' && isset($this->collected['propal'][$this->anchorId]))
+			? $this->collected['propal'][$this->anchorId]
+			: null;
+		$proposalRefused = (
+			$anchorPropal !== null
+			&& self::statusOf($anchorPropal) === -1 /*Propal::STATUS_NOTSIGNED*/
+			&& !$proposalSkipped
+		);
 
 		// 1. Proposal created
 		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'OrderProgressProposalCreatedTodo', 'propal',
