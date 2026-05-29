@@ -22,6 +22,7 @@
  */
 
 dol_include_once('/orderprogress/class/orderprogressresolver.class.php');
+dol_include_once('/orderprogress/class/leadprogressresolver.class.php');
 dol_include_once('/orderprogress/class/orderprogressrenderer.class.php');
 
 /**
@@ -79,6 +80,7 @@ class ActionsOrderprogress
 			'reception'            => array('const' => 'ORDERPROGRESS_ENABLE_RECEPTION', 'type' => 'reception'),
 			'shipping'             => array('const' => 'ORDERPROGRESS_ENABLE_SHIPMENT', 'type' => 'shipping'),
 			'expedition'           => array('const' => 'ORDERPROGRESS_ENABLE_SHIPMENT', 'type' => 'shipping'),
+			'project'              => array('const' => 'ORDERPROGRESS_ENABLE_PROJECT', 'type' => 'project'),
 		);
 		return isset($map[$element]) ? $map[$element] : null;
 	}
@@ -155,9 +157,14 @@ class ActionsOrderprogress
 
 		$langs->loadLangs(array('orderprogress@orderprogress'));
 
-		// Compute steps from native data.
-		$resolver = new OrderProgressResolver($this->db);
-		$steps = $resolver->resolve($mapping['type'], $object);
+		// Dispatch to the appropriate resolver.
+		if ($mapping['type'] === 'project') {
+			$resolver = new LeadProgressResolver($this->db);
+			$steps    = $resolver->resolve($object);
+		} else {
+			$resolver = new OrderProgressResolver($this->db);
+			$steps    = $resolver->resolve($mapping['type'], $object);
+		}
 		if (empty($steps)) {
 			return 0;
 		}
@@ -222,6 +229,8 @@ class ActionsOrderprogress
 			case 'invoice_supplier':
 			case 'facture_fourn':
 				return $user->hasRight('fournisseur', 'facture', 'lire') || $user->hasRight('supplier_invoice', 'lire');
+			case 'project':
+				return $user->hasRight('projet', 'lire');
 			default:
 				return false;
 		}

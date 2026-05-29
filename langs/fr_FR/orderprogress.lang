@@ -47,10 +47,19 @@ OrderProgressSupplierInvoiceReceivedTodo = À enregistrer
 OrderProgressSupplierInvoicePaid = Payé
 OrderProgressSupplierInvoicePaidTodo = À payer
 
+# Step labels - flux lead / opportunité (fiche projet)
+LeadProgressContacted = Contacté
+LeadProgressContactedTodo = À contacter
+LeadProgressWon = Gagné
+LeadProgressWonNeedDoc = Créer la commande
+LeadProgressLost = Perdu
+LeadProgressCloseTodo = Conclure
+
 # Setup page
 OrderProgressSetup = Configuration du suivi de progression
 OrderProgressSetupPage = Configurez où le suivi de progression est affiché et son apparence.
 OrderProgressEnabledObjects = Afficher le suivi sur ces types d'objets
+OrderProgressEnableProject = Leads / opportunités (fiches projet)
 OrderProgressEnableOrder = Commandes clients
 OrderProgressEnableSupplierOrder = Commandes fournisseurs
 OrderProgressEnablePropal = Devis clients
