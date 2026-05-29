@@ -18,6 +18,7 @@ OrderProgressProposalCreated = Quotation created
 OrderProgressProposalCreatedTodo = Create quotation
 OrderProgressProposalSigned = Quotation accepted
 OrderProgressProposalSignedTodo = Awaiting acceptance
+OrderProgressProposalRefused = Not accepted
 OrderProgressOrderCreated = Order created
 OrderProgressOrderCreatedTodo = Create order
 OrderProgressOrderValidated = Order validated

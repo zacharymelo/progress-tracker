@@ -292,80 +292,108 @@ class OrderProgressResolver
 		// entirely — mark those steps skipped rather than pending.
 		$proposalSkipped = empty($propals) && !empty($orders);
 
-		// 1. Proposal created
+		// Pre-compute proposal states used by multiple steps below.
 		$p = $this->pickDoc($propals);
-		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'OrderProgressProposalCreatedTodo', 'propal',
-			$p ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $p);
-
-		// 2. Proposal signed/accepted
 		$pSigned = $this->pickDoc($propals, function ($o) {
 			$s = OrderProgressResolver::statusOf($o);
 			return ($s === 2 /*Propal::STATUS_SIGNED*/ || $s === 4 /*Propal::STATUS_BILLED*/);
 		});
-		$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'OrderProgressProposalSignedTodo', 'propal',
-			$pSigned ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING),
-			$pSigned ? $pSigned : $p);
+		$pRefused = $this->pickDoc($propals, function ($o) {
+			return OrderProgressResolver::statusOf($o) === -1; /*Propal::STATUS_NOTSIGNED*/
+		});
+		// A refused proposal voids the downstream flow — but only when no signed
+		// proposal also exists (a signed revision overrides a refused earlier draft).
+		$proposalRefused = ($pRefused !== null && $pSigned === null && !$proposalSkipped);
+
+		// 1. Proposal created
+		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'OrderProgressProposalCreatedTodo', 'propal',
+			$p ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $p);
+
+		// 2. Proposal signed/accepted — or blocked when the proposal was refused/not signed.
+		if ($proposalRefused) {
+			// Show the refused proposal doc so the user can click to view it, but
+			// mark acceptance as blocked and nullify all downstream steps.
+			$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalRefused', 'OrderProgressProposalRefused', 'propal',
+				self::STATE_BLOCKED, $pRefused);
+		} else {
+			$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'OrderProgressProposalSignedTodo', 'propal',
+				$pSigned ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING),
+				$pSigned ? $pSigned : $p);
+		}
 
 		// 3. Order created
-		$o = $this->pickDoc($orders);
+		$o = $proposalRefused ? null : $this->pickDoc($orders);
 		$steps[] = $this->makeStep('order_created', 'OrderProgressOrderCreated', 'OrderProgressOrderCreatedTodo', 'commande',
-			$o ? self::STATE_COMPLETE : self::STATE_PENDING, $o);
+			$proposalRefused ? self::STATE_SKIPPED : ($o ? self::STATE_COMPLETE : self::STATE_PENDING), $o);
 
 		// 4. Order validated (Commande::STATUS_VALIDATED=1 and beyond, not canceled=-1)
-		$oValid = $this->pickDoc($orders, function ($x) {
+		$oValid = $proposalRefused ? null : $this->pickDoc($orders, function ($x) {
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 1);
 		});
 		$steps[] = $this->makeStep('order_validated', 'OrderProgressOrderValidated', 'OrderProgressOrderValidatedTodo', 'commande',
-			$oValid ? self::STATE_COMPLETE : self::STATE_PENDING, $oValid ? $oValid : $o);
+			$proposalRefused ? self::STATE_SKIPPED : ($oValid ? self::STATE_COMPLETE : self::STATE_PENDING),
+			$proposalRefused ? null : ($oValid ? $oValid : $o));
 
 		// 5. Shipment / delivery completed (only relevant when products require it)
-		$needsShipment = $this->orderNeedsShipment($orders);
-		$shipDone = $this->pickDoc($shipments, function ($x) {
-			$s = OrderProgressResolver::statusOf($x);
-			return ($s !== null && $s >= 2 /*Expedition::STATUS_CLOSED*/);
-		});
-		$shipAny = $this->pickDoc($shipments);
-		if (!empty($shipments) || $needsShipment) {
-			$state = $shipDone ? self::STATE_COMPLETE : self::STATE_PENDING;
-			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
-				$state, $shipDone ? $shipDone : $shipAny);
-		} else {
+		if ($proposalRefused) {
 			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
 				self::STATE_SKIPPED, null);
+		} else {
+			$needsShipment = $this->orderNeedsShipment($orders);
+			$shipDone = $this->pickDoc($shipments, function ($x) {
+				$s = OrderProgressResolver::statusOf($x);
+				return ($s !== null && $s >= 2 /*Expedition::STATUS_CLOSED*/);
+			});
+			$shipAny = $this->pickDoc($shipments);
+			if (!empty($shipments) || $needsShipment) {
+				$state = $shipDone ? self::STATE_COMPLETE : self::STATE_PENDING;
+				$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
+					$state, $shipDone ? $shipDone : $shipAny);
+			} else {
+				$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
+					self::STATE_SKIPPED, null);
+			}
 		}
 
 		// 6. Invoice created
-		$inv = $this->pickDoc($invoices);
+		$inv = $proposalRefused ? null : $this->pickDoc($invoices);
 		$steps[] = $this->makeStep('invoice_created', 'OrderProgressInvoiceCreated', 'OrderProgressInvoiceCreatedTodo', 'facture',
-			$inv ? self::STATE_COMPLETE : self::STATE_PENDING, $inv);
+			$proposalRefused ? self::STATE_SKIPPED : ($inv ? self::STATE_COMPLETE : self::STATE_PENDING),
+			$proposalRefused ? null : $inv);
 
 		// 7. Invoice paid (paid / partially paid / unpaid)
-		$invPaid = $this->pickDoc($invoices, function ($x) {
-			return (!empty($x->paye));
-		});
-		$invPartial = $this->pickDoc($invoices, function ($x) {
-			return (empty($x->paye) && property_exists($x, 'totalpaid') && $x->totalpaid > 0);
-		});
-		if ($invPaid) {
-			$paidState = self::STATE_COMPLETE;
-			$paidDoc = $invPaid;
-		} elseif ($invPartial) {
-			$paidState = self::STATE_CURRENT;
-			$paidDoc = $invPartial;
+		if ($proposalRefused) {
+			$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
+				self::STATE_SKIPPED, null);
 		} else {
-			$paidState = self::STATE_PENDING;
-			$paidDoc = $inv;
+			$invPaid = $this->pickDoc($invoices, function ($x) {
+				return (!empty($x->paye));
+			});
+			$invPartial = $this->pickDoc($invoices, function ($x) {
+				return (empty($x->paye) && property_exists($x, 'totalpaid') && $x->totalpaid > 0);
+			});
+			if ($invPaid) {
+				$paidState = self::STATE_COMPLETE;
+				$paidDoc = $invPaid;
+			} elseif ($invPartial) {
+				$paidState = self::STATE_CURRENT;
+				$paidDoc = $invPartial;
+			} else {
+				$paidState = self::STATE_PENDING;
+				$paidDoc = $inv;
+			}
+			$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
+				$paidState, $paidDoc);
 		}
-		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
-			$paidState, $paidDoc);
 
 		// 8. Order closed
-		$oClosed = $this->pickDoc($orders, function ($x) {
+		$oClosed = $proposalRefused ? null : $this->pickDoc($orders, function ($x) {
 			return (OrderProgressResolver::statusOf($x) === 3 /*Commande::STATUS_CLOSED*/);
 		});
 		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'OrderProgressOrderClosedTodo', 'commande',
-			$oClosed ? self::STATE_COMPLETE : self::STATE_PENDING, $oClosed ? $oClosed : $o);
+			$proposalRefused ? self::STATE_SKIPPED : ($oClosed ? self::STATE_COMPLETE : self::STATE_PENDING),
+			$proposalRefused ? null : ($oClosed ? $oClosed : $o));
 
 		return $this->markCurrent($steps);
 	}

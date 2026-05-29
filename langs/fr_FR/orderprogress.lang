@@ -18,6 +18,7 @@ OrderProgressProposalCreated = Devis créé
 OrderProgressProposalCreatedTodo = Créer un devis
 OrderProgressProposalSigned = Devis accepté
 OrderProgressProposalSignedTodo = En attente d'acceptation
+OrderProgressProposalRefused = Non accepté
 OrderProgressOrderCreated = Commande créée
 OrderProgressOrderCreatedTodo = Créer la commande
 OrderProgressOrderValidated = Commande validée
