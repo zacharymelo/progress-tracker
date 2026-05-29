@@ -1,0 +1,63 @@
+# Order Progress Tracker - English
+#
+# Module (keys resolved by numero are used on the modules list page)
+Module500120Name = Order Progress Tracker
+Module500120Desc = Visual progress tracker over the native Dolibarr document chain (orders, proposals, invoices, shipments, receptions)
+ModuleOrderProgressName = Order Progress Tracker
+ModuleOrderProgressDesc = Visual progress tracker over the native Dolibarr document chain
+OrderProgressAbout = About Order Progress Tracker
+OrderProgressAboutPage = Order Progress Tracker is a read-only visual layer over Dolibarr's native document chain. It does not create a parallel workflow and does not modify core files.
+
+# Tracker UI
+OrderProgressTitle = Order progress
+OrderProgressNotApplicable = Not applicable
+
+# Step labels - customer flow
+OrderProgressProposalCreated = Quotation created
+OrderProgressProposalSigned = Quotation accepted
+OrderProgressOrderCreated = Order created
+OrderProgressOrderValidated = Order validated
+OrderProgressShipmentDone = Shipment completed
+OrderProgressInvoiceCreated = Invoice created
+OrderProgressInvoicePaid = Invoice paid
+OrderProgressOrderClosed = Order closed
+
+# Step labels - supplier flow
+OrderProgressSupplierProposalCreated = Request created
+OrderProgressSupplierOrderCreated = Order created
+OrderProgressSupplierOrderApproved = Order approved
+OrderProgressSupplierOrderSent = Order placed
+OrderProgressReception = Reception completed
+OrderProgressSupplierInvoiceReceived = Invoice received
+OrderProgressSupplierInvoicePaid = Invoice paid
+
+# Setup page
+OrderProgressSetup = Order Progress Tracker setup
+OrderProgressSetupPage = Configure where the progress tracker is shown and how it looks.
+OrderProgressEnabledObjects = Show tracker on these object types
+OrderProgressEnableOrder = Customer orders
+OrderProgressEnableSupplierOrder = Supplier orders
+OrderProgressEnablePropal = Customer quotations
+OrderProgressEnableSupplierProposal = Supplier requests
+OrderProgressEnableInvoice = Customer invoices
+OrderProgressEnableSupplierInvoice = Supplier invoices
+OrderProgressEnableReception = Receptions
+OrderProgressEnableShipment = Shipments
+OrderProgressDisplayOptions = Display options
+OrderProgressDisplayMode = Display mode
+OrderProgressDisplayModeFull = Full (circles and labels)
+OrderProgressDisplayModeCompact = Compact (circles only)
+OrderProgressSkippedBehavior = Skipped steps
+OrderProgressSkippedShow = Show as "Not applicable"
+OrderProgressSkippedHide = Hide entirely
+OrderProgressClickable = Completed steps link to their document
+OrderProgressActionLinks = Action links on open steps
+OrderProgressActionLinksHelp = When enabled, the current and pending steps link to the native Dolibarr page where you perform that step (e.g. create the invoice, enter a payment). Links respect your native permissions and never change data on their own.
+OrderProgressDebug = Debug output (administrators only)
+OrderProgressColors = Colors (leave empty to use the theme)
+OrderProgressColorComplete = Completed color
+OrderProgressColorCurrent = Current color
+OrderProgressColorPending = Pending color
+OrderProgressColorSkipped = Skipped color
+OrderProgressColorBlocked = Blocked color
+OrderProgressColorHelp = Accepts a hex code (e.g. #2e7d32), a CSS color name, or rgb()/rgba().

@@ -1,0 +1,209 @@
+/* Order Progress Tracker styles.
+ *
+ * Colors use CSS custom properties so admins can override them via module
+ * configuration. Defaults aim to read well on Dolibarr's default (eldy) theme
+ * and degrade gracefully on dark themes.
+ */
+
+.orderprogress-tracker {
+	--orderprogress-complete: #2e7d32; /* green  */
+	--orderprogress-current:  #1976d2; /* blue   */
+	--orderprogress-pending:  #bdbdbd; /* grey   */
+	--orderprogress-skipped:  #d6d6d6; /* muted  */
+	--orderprogress-blocked:  #c62828; /* red    */
+	--orderprogress-line:     #d0d0d0;
+
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 0;
+	width: 100%;
+	box-sizing: border-box;
+	margin: 8px 0 14px 0;
+	padding: 12px 6px;
+	background: var(--colorbacktitle1, #fbfbfb);
+	border: 1px solid var(--colorblockborder, #e0e0e0);
+	border-radius: 6px;
+	font-size: 12px;
+	line-height: 1.3;
+}
+
+.orderprogress-step {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1 1 0;
+	min-width: 70px;
+	text-align: center;
+	padding: 0 2px;
+}
+
+/* Connector line drawn to the left of each step (except the first). */
+.orderprogress-connector {
+	position: absolute;
+	top: 13px;
+	right: 50%;
+	width: 100%;
+	height: 3px;
+	background: var(--orderprogress-line);
+	z-index: 0;
+}
+.orderprogress-connector-complete {
+	background: var(--orderprogress-complete);
+}
+
+.orderprogress-circle {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: #ffffff;
+	border: 3px solid var(--orderprogress-pending);
+	color: #ffffff;
+	font-size: 13px;
+	font-weight: bold;
+	box-sizing: border-box;
+}
+
+.orderprogress-glyph {
+	line-height: 1;
+}
+
+.orderprogress-label {
+	display: block;
+	margin-top: 6px;
+	color: var(--colortexttitlenotab, #444);
+	max-width: 110px;
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+}
+
+.orderprogress-ref {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	opacity: 0.75;
+}
+
+/* Links should not look like default underlined anchors. */
+.orderprogress-link {
+	text-decoration: none;
+	color: inherit;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+.orderprogress-link:hover .orderprogress-label {
+	text-decoration: underline;
+}
+
+/* Action links (proceed with the next native step) get a clearer affordance. */
+.orderprogress-link.orderprogress-action {
+	cursor: pointer;
+}
+.orderprogress-link.orderprogress-action .orderprogress-label::after {
+	content: " \2192"; /* right arrow hint */
+	opacity: 0.7;
+}
+.orderprogress-link.orderprogress-action:hover .orderprogress-circle {
+	filter: brightness(1.08);
+	box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.18);
+}
+
+/* --- State styling --- */
+
+.orderprogress-complete .orderprogress-circle {
+	background: var(--orderprogress-complete);
+	border-color: var(--orderprogress-complete);
+}
+.orderprogress-current .orderprogress-circle {
+	background: var(--orderprogress-current);
+	border-color: var(--orderprogress-current);
+	box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.25);
+}
+.orderprogress-current .orderprogress-label {
+	font-weight: bold;
+}
+.orderprogress-pending .orderprogress-circle {
+	background: #ffffff;
+	border-color: var(--orderprogress-pending);
+	color: var(--orderprogress-pending);
+}
+.orderprogress-skipped .orderprogress-circle {
+	background: #ffffff;
+	border-color: var(--orderprogress-skipped);
+	color: var(--orderprogress-skipped);
+	border-style: dashed;
+}
+.orderprogress-skipped .orderprogress-label {
+	opacity: 0.6;
+	font-style: italic;
+}
+.orderprogress-blocked .orderprogress-circle {
+	background: var(--orderprogress-blocked);
+	border-color: var(--orderprogress-blocked);
+}
+
+/* --- Compact mode: hide labels, keep circles in a tight row. --- */
+
+.orderprogress-tracker.orderprogress-compact {
+	padding: 8px 6px;
+}
+.orderprogress-tracker.orderprogress-compact .orderprogress-label {
+	display: none;
+}
+.orderprogress-tracker.orderprogress-compact .orderprogress-step {
+	min-width: 34px;
+}
+
+/* --- Debug panel --- */
+
+.orderprogress-debug {
+	margin: 6px 0 14px 0;
+	padding: 8px 10px;
+	border: 1px dashed #c62828;
+	border-radius: 4px;
+	background: #fff8f8;
+	font-family: monospace;
+	font-size: 11px;
+	color: #555;
+}
+
+/* --- Responsive: stack into a vertical timeline on narrow screens. --- */
+
+@media (max-width: 767px) {
+	.orderprogress-tracker {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+	}
+	.orderprogress-step {
+		flex-direction: row;
+		align-items: center;
+		width: 100%;
+		min-width: 0;
+		text-align: left;
+		gap: 8px;
+		padding: 3px 0;
+	}
+	.orderprogress-connector {
+		display: none;
+	}
+	.orderprogress-label {
+		margin-top: 0;
+		max-width: none;
+	}
+	.orderprogress-link {
+		flex-direction: row;
+		align-items: center;
+		gap: 8px;
+	}
+	.orderprogress-tracker.orderprogress-compact .orderprogress-label {
+		display: block;
+	}
+}
