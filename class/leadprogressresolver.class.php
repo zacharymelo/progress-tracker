@@ -78,8 +78,7 @@ class LeadProgressResolver
 	/**
 	 *  Resolve lead progress steps for a project object.
 	 *
-	 *  @param  object  $project  Loaded Project object (must have ->id, ->fk_opp_status,
-	 *                             ->opp_status_code, ->opp_percent)
+	 *  @param  object  $project  Loaded Project object (must have ->id, ->fk_opp_status)
 	 *  @return array              Ordered normalized steps, or empty array on error.
 	 */
 	public function resolve($project)
@@ -120,7 +119,10 @@ class LeadProgressResolver
 		);
 
 		$currentPos = $this->currentStagePosition($project, $stages);
-		$oppCode    = !empty($project->opp_status_code) ? $project->opp_status_code : '';
+
+		// opp_status_code is NOT populated by Project::fetch() — derive it from
+		// fk_opp_status by looking it up in the stages we already loaded.
+		$oppCode = $this->currentStageCode($project, $stages);
 
 		$steps = array();
 
@@ -253,7 +255,7 @@ class LeadProgressResolver
 	 *  or null if no stage is set.
 	 *
 	 *  @param  object    $project  Project object
-	 *  @param  object[]  $stages   Loaded stages
+	 *  @param  object[]  $stages   Loaded stages (from llx_c_lead_status)
 	 *  @return int|null             Position value or null
 	 */
 	private function currentStagePosition($project, $stages)
@@ -266,15 +268,29 @@ class LeadProgressResolver
 				return (int) $stage->position;
 			}
 		}
-		// Fallback: try matching by code
-		if (!empty($project->opp_status_code)) {
-			foreach ($stages as $stage) {
-				if ($stage->code === $project->opp_status_code) {
-					return (int) $stage->position;
-				}
+		return null;
+	}
+
+	/**
+	 *  Derive the opportunity stage code (e.g. 'WON', 'LOST', 'PROPO') from the
+	 *  project's fk_opp_status integer. Project::fetch() never populates
+	 *  opp_status_code, so we resolve it ourselves from the already-loaded stages.
+	 *
+	 *  @param  object    $project  Project object
+	 *  @param  object[]  $stages   Loaded stages
+	 *  @return string               Stage code or ''
+	 */
+	private function currentStageCode($project, $stages)
+	{
+		if (empty($project->fk_opp_status)) {
+			return '';
+		}
+		foreach ($stages as $stage) {
+			if ((int) $stage->rowid === (int) $project->fk_opp_status) {
+				return $stage->code;
 			}
 		}
-		return null;
+		return '';
 	}
 
 	/**
@@ -296,7 +312,8 @@ class LeadProgressResolver
 			." INNER JOIN ".MAIN_DB_PREFIX."c_actioncomm t ON t.id = a.fk_action"
 			." WHERE a.fk_project = ".((int) $projectId)
 			." AND t.code IN (".implode(',', $codesEscaped).")"
-			." AND t.type != 'systemauto'";
+			." AND t.type != 'systemauto'"
+			." AND a.entity IN (".getEntity('agenda').")";
 		$res = $this->db->query($sql);
 		if (!$res) {
 			return false;
@@ -308,13 +325,14 @@ class LeadProgressResolver
 
 	/**
 	 *  Load sent proposals linked to this project (status >= Propal::STATUS_VALIDATED = 1).
+	 *  Checks both the direct fk_projet FK and the general llx_element_element link table.
 	 *
 	 *  @param  int  $projectId  Project id
 	 *  @return object[]          Minimal proposal rows
 	 */
 	private function loadLinkedPropals($projectId)
 	{
-		return $this->queryLinked('propal', 'fk_projet', $projectId, 'fk_statut >= 1');
+		return $this->queryLinkedWithFallback('propal', $projectId, 'fk_statut >= 1');
 	}
 
 	/**
@@ -325,7 +343,7 @@ class LeadProgressResolver
 	 */
 	private function loadLinkedOrders($projectId)
 	{
-		return $this->queryLinked('commande', 'fk_projet', $projectId);
+		return $this->queryLinkedWithFallback('commande', $projectId);
 	}
 
 	/**
@@ -336,29 +354,89 @@ class LeadProgressResolver
 	 */
 	private function loadLinkedInvoices($projectId)
 	{
-		return $this->queryLinked('facture', 'fk_projet', $projectId);
+		return $this->queryLinkedWithFallback('facture', $projectId);
 	}
 
 	/**
-	 *  Generic direct-FK query helper.
+	 *  Query documents linked to a project via fk_projet (direct FK) first, then
+	 *  fall back to llx_element_element (general link table used when a document is
+	 *  linked to a project after creation rather than created from within it).
 	 *
 	 *  @param  string       $table      Dolibarr table name (without prefix)
-	 *  @param  string       $fkField    FK field in that table
 	 *  @param  int          $projectId  Project id
-	 *  @param  string|null  $extra      Optional extra WHERE clause
-	 *  @return object[]                  Rows with rowid, ref, fk_statut/status, date
+	 *  @param  string|null  $extra      Optional extra WHERE clause (applied to the main table)
+	 *  @return object[]                  Rows with rowid, ref, status
 	 */
-	private function queryLinked($table, $fkField, $projectId, $extra = null)
+	private function queryLinkedWithFallback($table, $projectId, $extra = null)
+	{
+		// 1. Direct FK on the document table.
+		$rows = $this->queryByFkProjet($table, $projectId, $extra);
+		if (!empty($rows)) {
+			return $rows;
+		}
+
+		// 2. General element-link table (document linked to project after the fact).
+		return $this->queryViaElementElement($table, $projectId, $extra);
+	}
+
+	/**
+	 *  Query via direct fk_projet column.
+	 *
+	 *  @param  string       $table
+	 *  @param  int          $projectId
+	 *  @param  string|null  $extra
+	 *  @return object[]
+	 */
+	private function queryByFkProjet($table, $projectId, $extra = null)
 	{
 		$rows = array();
 		$sql  = "SELECT rowid, ref, fk_statut as status"
 			." FROM ".MAIN_DB_PREFIX.$table
-			." WHERE ".$fkField." = ".((int) $projectId)
-			." AND entity = ".((int) (isset($GLOBALS['conf']->entity) ? $GLOBALS['conf']->entity : 1));
+			." WHERE fk_projet = ".((int) $projectId)
+			." AND entity IN (".getEntity($table).")";
 		if ($extra) {
 			$sql .= " AND ".$extra;
 		}
 		$sql .= " ORDER BY rowid ASC";
+		$res  = $this->db->query($sql);
+		if (!$res) {
+			return array();
+		}
+		while ($obj = $this->db->fetch_object($res)) {
+			$rows[] = $obj;
+		}
+		$this->db->free($res);
+		return $rows;
+	}
+
+	/**
+	 *  Query via llx_element_element (documents linked after creation).
+	 *  The project is always the source; the document is the target (or vice-versa).
+	 *
+	 *  @param  string       $table      Document table name (also the element type name)
+	 *  @param  int          $projectId
+	 *  @param  string|null  $extra      Extra WHERE clause applied to the document table
+	 *  @return object[]
+	 */
+	private function queryViaElementElement($table, $projectId, $extra = null)
+	{
+		$rows = array();
+		$tbl  = MAIN_DB_PREFIX.$table;
+		$ee   = MAIN_DB_PREFIX."element_element";
+
+		// Dolibarr stores links bidirectionally; the project can be source or target.
+		$sql = "SELECT d.rowid, d.ref, d.fk_statut as status"
+			." FROM ".$tbl." d"
+			." INNER JOIN ".$ee." ee ON ("
+			."  (ee.fk_source = ".((int) $projectId)." AND ee.sourcetype = 'project' AND ee.fk_target = d.rowid AND ee.targettype = '".$this->db->escape($table)."')"
+			."  OR"
+			."  (ee.fk_target = ".((int) $projectId)." AND ee.targettype = 'project' AND ee.fk_source = d.rowid AND ee.sourcetype = '".$this->db->escape($table)."')"
+			." )"
+			." WHERE d.entity IN (".getEntity($table).")";
+		if ($extra) {
+			$sql .= " AND d.".$extra;
+		}
+		$sql .= " ORDER BY d.rowid ASC";
 		$res  = $this->db->query($sql);
 		if (!$res) {
 			return array();
@@ -390,16 +468,13 @@ class LeadProgressResolver
 		// Find first linked document ids for seeding create forms.
 		$propalId = 0;
 		$orderId  = 0;
-		if (!empty($this->collected)) {
-			// Re-query minimally for IDs (collected only has counts).
-			$row = $this->queryLinked('propal', 'fk_projet', $pid, 'fk_statut >= 1');
-			if (!empty($row)) {
-				$propalId = (int) reset($row)->rowid;
-			}
-			$row = $this->queryLinked('commande', 'fk_projet', $pid);
-			if (!empty($row)) {
-				$orderId = (int) reset($row)->rowid;
-			}
+		$row = $this->loadLinkedPropals($pid);
+		if (!empty($row)) {
+			$propalId = (int) reset($row)->rowid;
+		}
+		$row = $this->loadLinkedOrders($pid);
+		if (!empty($row)) {
+			$orderId = (int) reset($row)->rowid;
 		}
 
 		$map = array(
