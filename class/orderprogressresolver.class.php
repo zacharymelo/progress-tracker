@@ -314,9 +314,16 @@ class OrderProgressResolver
 		$anchorPropal = ($this->anchorElement === 'propal' && isset($this->collected['propal'][$this->anchorId]))
 			? $this->collected['propal'][$this->anchorId]
 			: null;
+		$anchorStatus = ($anchorPropal !== null) ? self::statusOf($anchorPropal) : null;
+		// A proposal is dead when it is not in a forward-moving state.
+		// We check what it is NOT rather than a specific closed value, because
+		// Dolibarr installations vary in how they label closed/abandoned/refused
+		// states (e.g. -1, 3, custom module values).  Draft=0, Open=1, Signed=2,
+		// Billed=4 are the only states where the downstream flow is still live.
 		$proposalRefused = (
 			$anchorPropal !== null
-			&& self::statusOf($anchorPropal) === -1 /*Propal::STATUS_NOTSIGNED*/
+			&& $anchorStatus !== null
+			&& !in_array($anchorStatus, array(0, 1, 2, 4))
 			&& !$proposalSkipped
 		);
 
