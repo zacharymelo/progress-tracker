@@ -1,0 +1,63 @@
+# Order Progress Tracker - Français
+#
+# Module (clés résolues par numéro utilisées sur la page des modules)
+Module500120Name = Suivi de progression des commandes
+Module500120Desc = Indicateur visuel de progression basé sur la chaîne documentaire native de Dolibarr (commandes, devis, factures, expéditions, réceptions)
+ModuleOrderProgressName = Suivi de progression des commandes
+ModuleOrderProgressDesc = Indicateur visuel de progression basé sur la chaîne documentaire native de Dolibarr
+OrderProgressAbout = À propos du suivi de progression
+OrderProgressAboutPage = Le suivi de progression est une couche visuelle en lecture seule au-dessus de la chaîne documentaire native de Dolibarr. Il ne crée aucun workflow parallèle et ne modifie aucun fichier du noyau.
+
+# Tracker UI
+OrderProgressTitle = Progression
+OrderProgressNotApplicable = Non applicable
+
+# Step labels - customer flow
+OrderProgressProposalCreated = Devis créé
+OrderProgressProposalSigned = Devis accepté
+OrderProgressOrderCreated = Commande créée
+OrderProgressOrderValidated = Commande validée
+OrderProgressShipmentDone = Expédition effectuée
+OrderProgressInvoiceCreated = Facture créée
+OrderProgressInvoicePaid = Facture payée
+OrderProgressOrderClosed = Commande clôturée
+
+# Step labels - supplier flow
+OrderProgressSupplierProposalCreated = Demande créée
+OrderProgressSupplierOrderCreated = Commande créée
+OrderProgressSupplierOrderApproved = Commande approuvée
+OrderProgressSupplierOrderSent = Commande passée
+OrderProgressReception = Réception effectuée
+OrderProgressSupplierInvoiceReceived = Facture reçue
+OrderProgressSupplierInvoicePaid = Facture payée
+
+# Setup page
+OrderProgressSetup = Configuration du suivi de progression
+OrderProgressSetupPage = Configurez où le suivi de progression est affiché et son apparence.
+OrderProgressEnabledObjects = Afficher le suivi sur ces types d'objets
+OrderProgressEnableOrder = Commandes clients
+OrderProgressEnableSupplierOrder = Commandes fournisseurs
+OrderProgressEnablePropal = Devis clients
+OrderProgressEnableSupplierProposal = Demandes de prix fournisseurs
+OrderProgressEnableInvoice = Factures clients
+OrderProgressEnableSupplierInvoice = Factures fournisseurs
+OrderProgressEnableReception = Réceptions
+OrderProgressEnableShipment = Expéditions
+OrderProgressDisplayOptions = Options d'affichage
+OrderProgressDisplayMode = Mode d'affichage
+OrderProgressDisplayModeFull = Complet (cercles et libellés)
+OrderProgressDisplayModeCompact = Compact (cercles uniquement)
+OrderProgressSkippedBehavior = Étapes ignorées
+OrderProgressSkippedShow = Afficher comme « Non applicable »
+OrderProgressSkippedHide = Masquer complètement
+OrderProgressClickable = Les étapes terminées renvoient vers leur document
+OrderProgressActionLinks = Liens d'action sur les étapes en cours
+OrderProgressActionLinksHelp = Lorsque cette option est activée, les étapes en cours et à venir renvoient vers la page native de Dolibarr où réaliser cette étape (par ex. créer la facture, saisir un règlement). Les liens respectent vos permissions natives et ne modifient jamais les données par eux-mêmes.
+OrderProgressDebug = Sortie de débogage (administrateurs uniquement)
+OrderProgressColors = Couleurs (laisser vide pour utiliser le thème)
+OrderProgressColorComplete = Couleur terminé
+OrderProgressColorCurrent = Couleur en cours
+OrderProgressColorPending = Couleur en attente
+OrderProgressColorSkipped = Couleur ignoré
+OrderProgressColorBlocked = Couleur bloqué
+OrderProgressColorHelp = Accepte un code hexadécimal (ex. #2e7d32), un nom de couleur CSS, ou rgb()/rgba().
