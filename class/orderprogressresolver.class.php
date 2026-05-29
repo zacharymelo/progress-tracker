@@ -294,7 +294,7 @@ class OrderProgressResolver
 
 		// 1. Proposal created
 		$p = $this->pickDoc($propals);
-		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'propal',
+		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'OrderProgressProposalCreatedTodo', 'propal',
 			$p ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $p);
 
 		// 2. Proposal signed/accepted
@@ -302,13 +302,13 @@ class OrderProgressResolver
 			$s = OrderProgressResolver::statusOf($o);
 			return ($s === 2 /*Propal::STATUS_SIGNED*/ || $s === 4 /*Propal::STATUS_BILLED*/);
 		});
-		$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'propal',
+		$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'OrderProgressProposalSignedTodo', 'propal',
 			$pSigned ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING),
 			$pSigned ? $pSigned : $p);
 
 		// 3. Order created
 		$o = $this->pickDoc($orders);
-		$steps[] = $this->makeStep('order_created', 'OrderProgressOrderCreated', 'commande',
+		$steps[] = $this->makeStep('order_created', 'OrderProgressOrderCreated', 'OrderProgressOrderCreatedTodo', 'commande',
 			$o ? self::STATE_COMPLETE : self::STATE_PENDING, $o);
 
 		// 4. Order validated (Commande::STATUS_VALIDATED=1 and beyond, not canceled=-1)
@@ -316,7 +316,7 @@ class OrderProgressResolver
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 1);
 		});
-		$steps[] = $this->makeStep('order_validated', 'OrderProgressOrderValidated', 'commande',
+		$steps[] = $this->makeStep('order_validated', 'OrderProgressOrderValidated', 'OrderProgressOrderValidatedTodo', 'commande',
 			$oValid ? self::STATE_COMPLETE : self::STATE_PENDING, $oValid ? $oValid : $o);
 
 		// 5. Shipment / delivery completed (only relevant when products require it)
@@ -328,16 +328,16 @@ class OrderProgressResolver
 		$shipAny = $this->pickDoc($shipments);
 		if (!empty($shipments) || $needsShipment) {
 			$state = $shipDone ? self::STATE_COMPLETE : self::STATE_PENDING;
-			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'shipping',
+			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
 				$state, $shipDone ? $shipDone : $shipAny);
 		} else {
-			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'shipping',
+			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
 				self::STATE_SKIPPED, null);
 		}
 
 		// 6. Invoice created
 		$inv = $this->pickDoc($invoices);
-		$steps[] = $this->makeStep('invoice_created', 'OrderProgressInvoiceCreated', 'facture',
+		$steps[] = $this->makeStep('invoice_created', 'OrderProgressInvoiceCreated', 'OrderProgressInvoiceCreatedTodo', 'facture',
 			$inv ? self::STATE_COMPLETE : self::STATE_PENDING, $inv);
 
 		// 7. Invoice paid (paid / partially paid / unpaid)
@@ -357,14 +357,14 @@ class OrderProgressResolver
 			$paidState = self::STATE_PENDING;
 			$paidDoc = $inv;
 		}
-		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'facture',
+		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
 			$paidState, $paidDoc);
 
 		// 8. Order closed
 		$oClosed = $this->pickDoc($orders, function ($x) {
 			return (OrderProgressResolver::statusOf($x) === 3 /*Commande::STATUS_CLOSED*/);
 		});
-		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'commande',
+		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'OrderProgressOrderClosedTodo', 'commande',
 			$oClosed ? self::STATE_COMPLETE : self::STATE_PENDING, $oClosed ? $oClosed : $o);
 
 		return $this->markCurrent($steps);
@@ -386,12 +386,12 @@ class OrderProgressResolver
 
 		// 1. Supplier proposal / request created (optional)
 		$sp = $this->pickDoc($proposals);
-		$steps[] = $this->makeStep('supplier_proposal_created', 'OrderProgressSupplierProposalCreated', 'supplier_proposal',
+		$steps[] = $this->makeStep('supplier_proposal_created', 'OrderProgressSupplierProposalCreated', 'OrderProgressSupplierProposalCreatedTodo', 'supplier_proposal',
 			$sp ? self::STATE_COMPLETE : self::STATE_SKIPPED, $sp);
 
 		// 2. Supplier order created
 		$o = $this->pickDoc($orders);
-		$steps[] = $this->makeStep('order_created', 'OrderProgressSupplierOrderCreated', 'order_supplier',
+		$steps[] = $this->makeStep('order_created', 'OrderProgressSupplierOrderCreated', 'OrderProgressSupplierOrderCreatedTodo', 'order_supplier',
 			$o ? self::STATE_COMPLETE : self::STATE_PENDING, $o);
 
 		// 3. Supplier order approved (CommandeFournisseur::STATUS_ACCEPTED=2 .. RECEIVED_COMPLETELY=5;
@@ -400,7 +400,7 @@ class OrderProgressResolver
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 2 && $s <= 5);
 		});
-		$steps[] = $this->makeStep('order_approved', 'OrderProgressSupplierOrderApproved', 'order_supplier',
+		$steps[] = $this->makeStep('order_approved', 'OrderProgressSupplierOrderApproved', 'OrderProgressSupplierOrderApprovedTodo', 'order_supplier',
 			$oApproved ? self::STATE_COMPLETE : self::STATE_PENDING, $oApproved ? $oApproved : $o);
 
 		// 4. Supplier order sent/placed (STATUS_ORDERSENT=3 .. RECEIVED_COMPLETELY=5)
@@ -408,7 +408,7 @@ class OrderProgressResolver
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 3 && $s <= 5);
 		});
-		$steps[] = $this->makeStep('order_sent', 'OrderProgressSupplierOrderSent', 'order_supplier',
+		$steps[] = $this->makeStep('order_sent', 'OrderProgressSupplierOrderSent', 'OrderProgressSupplierOrderSentTodo', 'order_supplier',
 			$oSent ? self::STATE_COMPLETE : self::STATE_PENDING, $oSent ? $oSent : $o);
 
 		// 5. Reception completed (reception closed OR order received completely STATUS_RECEIVED_COMPLETELY=5)
@@ -422,30 +422,30 @@ class OrderProgressResolver
 		$recAny = $this->pickDoc($receptions);
 		if (!empty($receptions) || $orderReceived) {
 			$state = ($recDone || $orderReceived) ? self::STATE_COMPLETE : self::STATE_PENDING;
-			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'reception',
+			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
 				$state, $recDone ? $recDone : $recAny);
 		} else {
-			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'reception',
+			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
 				self::STATE_PENDING, null);
 		}
 
 		// 6. Supplier invoice received
 		$inv = $this->pickDoc($invoices);
-		$steps[] = $this->makeStep('invoice_received', 'OrderProgressSupplierInvoiceReceived', 'invoice_supplier',
+		$steps[] = $this->makeStep('invoice_received', 'OrderProgressSupplierInvoiceReceived', 'OrderProgressSupplierInvoiceReceivedTodo', 'invoice_supplier',
 			$inv ? self::STATE_COMPLETE : self::STATE_PENDING, $inv);
 
 		// 7. Supplier invoice paid
 		$invPaid = $this->pickDoc($invoices, function ($x) {
 			return (!empty($x->paye));
 		});
-		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressSupplierInvoicePaid', 'invoice_supplier',
+		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressSupplierInvoicePaid', 'OrderProgressSupplierInvoicePaidTodo', 'invoice_supplier',
 			$invPaid ? self::STATE_COMPLETE : self::STATE_PENDING, $invPaid ? $invPaid : $inv);
 
 		// 8. Order closed (CommandeFournisseur::STATUS_RECEIVED_COMPLETELY=5 is the natural terminal state)
 		$oClosed = $this->pickDoc($orders, function ($x) {
 			return (OrderProgressResolver::statusOf($x) === 5);
 		});
-		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'order_supplier',
+		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'OrderProgressOrderClosedTodo', 'order_supplier',
 			$oClosed ? self::STATE_COMPLETE : self::STATE_PENDING, $oClosed ? $oClosed : $o);
 
 		return $this->markCurrent($steps);
@@ -646,20 +646,22 @@ class OrderProgressResolver
 	/**
 	 *  Build one normalized step descriptor.
 	 *
-	 *  @param  string       $key         Stable step key
-	 *  @param  string       $labelKey    Translation key for the label
-	 *  @param  string       $objectType  Normalized element type this step maps to
-	 *  @param  string       $state       One of the STATE_* constants
-	 *  @param  object|null  $doc         Source document, if any
-	 *  @return array                      Normalized step
+	 *  @param  string       $key          Stable step key
+	 *  @param  string       $labelKeyDone Translation key shown when step is complete/skipped
+	 *  @param  string       $labelKeyTodo Translation key shown when step is current/pending
+	 *  @param  string       $objectType   Normalized element type this step maps to
+	 *  @param  string       $state        One of the STATE_* constants
+	 *  @param  object|null  $doc          Source document, if any
+	 *  @return array                       Normalized step
 	 */
-	private function makeStep($key, $labelKey, $objectType, $state, $doc)
+	private function makeStep($key, $labelKeyDone, $labelKeyTodo, $objectType, $state, $doc)
 	{
 		global $langs;
 
 		$step = array(
 			'key'         => $key,
-			'label'       => $langs->trans($labelKey),
+			'label'       => $langs->trans($labelKeyDone),
+			'label_todo'  => $langs->trans($labelKeyTodo),
 			'state'       => $state,
 			'object_type' => $objectType,
 			'object_id'   => 0,

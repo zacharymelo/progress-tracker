@@ -13,23 +13,39 @@ OrderProgressTitle = Progression
 OrderProgressNotApplicable = Non applicable
 
 # Step labels - customer flow
+# Chaque étape a un libellé « fait » (complete/skipped) et un libellé « à faire » (current/pending).
 OrderProgressProposalCreated = Devis créé
+OrderProgressProposalCreatedTodo = Créer un devis
 OrderProgressProposalSigned = Devis accepté
+OrderProgressProposalSignedTodo = En attente d'acceptation
 OrderProgressOrderCreated = Commande créée
+OrderProgressOrderCreatedTodo = Créer la commande
 OrderProgressOrderValidated = Commande validée
-OrderProgressShipmentDone = Expédition effectuée
-OrderProgressInvoiceCreated = Facture créée
-OrderProgressInvoicePaid = Facture payée
+OrderProgressOrderValidatedTodo = À valider
+OrderProgressShipmentDone = Expédié
+OrderProgressShipmentDoneTodo = À expédier
+OrderProgressInvoiceCreated = Facturé
+OrderProgressInvoiceCreatedTodo = À facturer
+OrderProgressInvoicePaid = Payé
+OrderProgressInvoicePaidTodo = À payer
 OrderProgressOrderClosed = Commande clôturée
+OrderProgressOrderClosedTodo = Commande clôturée
 
 # Step labels - supplier flow
 OrderProgressSupplierProposalCreated = Demande créée
+OrderProgressSupplierProposalCreatedTodo = Créer une demande
 OrderProgressSupplierOrderCreated = Commande créée
+OrderProgressSupplierOrderCreatedTodo = Créer la commande
 OrderProgressSupplierOrderApproved = Commande approuvée
+OrderProgressSupplierOrderApprovedTodo = En attente d'approbation
 OrderProgressSupplierOrderSent = Commande passée
-OrderProgressReception = Marchandises reçues
+OrderProgressSupplierOrderSentTodo = À passer
+OrderProgressReception = Réceptionné
+OrderProgressReceptionTodo = À réceptionner
 OrderProgressSupplierInvoiceReceived = Facture reçue
-OrderProgressSupplierInvoicePaid = Facture payée
+OrderProgressSupplierInvoiceReceivedTodo = À enregistrer
+OrderProgressSupplierInvoicePaid = Payé
+OrderProgressSupplierInvoicePaidTodo = À payer
 
 # Setup page
 OrderProgressSetup = Configuration du suivi de progression

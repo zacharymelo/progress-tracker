@@ -13,23 +13,39 @@ OrderProgressTitle = Order progress
 OrderProgressNotApplicable = Not applicable
 
 # Step labels - customer flow
+# Each step has a "done" label (complete/skipped) and a "todo" label (current/pending).
 OrderProgressProposalCreated = Quotation created
+OrderProgressProposalCreatedTodo = Create quotation
 OrderProgressProposalSigned = Quotation accepted
+OrderProgressProposalSignedTodo = Awaiting acceptance
 OrderProgressOrderCreated = Order created
+OrderProgressOrderCreatedTodo = Create order
 OrderProgressOrderValidated = Order validated
-OrderProgressShipmentDone = Shipment completed
-OrderProgressInvoiceCreated = Invoice created
-OrderProgressInvoicePaid = Invoice paid
+OrderProgressOrderValidatedTodo = To validate
+OrderProgressShipmentDone = Shipped
+OrderProgressShipmentDoneTodo = To ship
+OrderProgressInvoiceCreated = Invoiced
+OrderProgressInvoiceCreatedTodo = To invoice
+OrderProgressInvoicePaid = Paid
+OrderProgressInvoicePaidTodo = To pay
 OrderProgressOrderClosed = Order closed
+OrderProgressOrderClosedTodo = Order closed
 
 # Step labels - supplier flow
 OrderProgressSupplierProposalCreated = Request created
+OrderProgressSupplierProposalCreatedTodo = Create request
 OrderProgressSupplierOrderCreated = Order created
+OrderProgressSupplierOrderCreatedTodo = Create order
 OrderProgressSupplierOrderApproved = Order approved
+OrderProgressSupplierOrderApprovedTodo = Awaiting approval
 OrderProgressSupplierOrderSent = Order placed
-OrderProgressReception = Goods received
+OrderProgressSupplierOrderSentTodo = To place order
+OrderProgressReception = Received
+OrderProgressReceptionTodo = To receive
 OrderProgressSupplierInvoiceReceived = Invoice received
-OrderProgressSupplierInvoicePaid = Invoice paid
+OrderProgressSupplierInvoiceReceivedTodo = To book invoice
+OrderProgressSupplierInvoicePaid = Paid
+OrderProgressSupplierInvoicePaidTodo = To pay
 
 # Setup page
 OrderProgressSetup = Order Progress Tracker setup

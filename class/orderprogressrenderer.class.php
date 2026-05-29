@@ -146,8 +146,13 @@ class OrderProgressRenderer
 			$out .= '<a class="'.$linkClass.'" href="'.dol_escape_htmltag($href).'">';
 		}
 
+		// Use the "to-do" label for open steps (pending/current) so the wording
+		// describes the action still needed, not the outcome that hasn't happened yet.
+		$isOpen = in_array($state, array(OrderProgressResolver::STATE_CURRENT, OrderProgressResolver::STATE_PENDING));
+		$label  = ($isOpen && !empty($step['label_todo'])) ? $step['label_todo'] : $step['label'];
+
 		$out .= '<span class="orderprogress-circle" aria-hidden="true">'.$circleInner.'</span>';
-		$out .= '<span class="orderprogress-label">'.dol_escape_htmltag($step['label']);
+		$out .= '<span class="orderprogress-label">'.dol_escape_htmltag($label);
 		if (!$this->compact && !empty($step['ref'])) {
 			$out .= '<span class="orderprogress-ref">'.dol_escape_htmltag($step['ref']).'</span>';
 		}
