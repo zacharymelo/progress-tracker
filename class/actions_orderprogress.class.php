@@ -100,9 +100,9 @@ class ActionsOrderprogress
 	}
 
 	/**
-	 *  Hook fired in the page footer of (almost) every page. We use it because
-	 *  card pages reliably expose $object here, and we relocate our output to
-	 *  the top of the card with JS — keeping us out of core templates.
+	 *  Hook fired during the main card form render. $object is reliably in scope
+	 *  here; we inject a hidden div and relocate it to the top of the card with
+	 *  a small jQuery snippet — keeping us out of core templates.
 	 *
 	 *  @param  array         $parameters   Hook parameters
 	 *  @param  CommonObject  $object       Current page object (the document)
@@ -110,16 +110,17 @@ class ActionsOrderprogress
 	 *  @param  HookManager   $hookmanager  Hook manager
 	 *  @return int                          0 on success, <0 on error
 	 */
-	public function printCommonFooter($parameters, &$object, &$action, $hookmanager)
+	public function formObjectOptions($parameters, &$object, &$action, $hookmanager)
 	{
 		global $conf, $langs, $user;
 
-		$this->resprints = '';
-
-		// The global printCommonFooter() does not forward $object to executeHooks,
-		// so fall back to the page's global $object when the parameter is empty.
-		if (!is_object($object) && isset($GLOBALS['object']) && is_object($GLOBALS['object'])) {
-			$object = $GLOBALS['object'];
+		// Dolibarr may not forward $object to executeHooks, or may pass a non-card
+		// object (e.g. Form). Fall back to the page-global $object whenever the
+		// passed-in one lacks a valid card element/id.
+		$globalObj = isset($GLOBALS['object']) && is_object($GLOBALS['object']) ? $GLOBALS['object'] : null;
+		if ((!is_object($object) || empty($object->element) || empty($object->id))
+			&& $globalObj !== null && !empty($globalObj->element) && !empty($globalObj->id)) {
+			$object = $globalObj;
 		}
 
 		// Only on a real document card with an id.
@@ -129,7 +130,7 @@ class ActionsOrderprogress
 
 		$mapping = $this->mapElement($object->element);
 		if ($mapping === null) {
-			return 0; // not a supported object type
+			return 0;
 		}
 
 		// Respect per-object-type enable switch.

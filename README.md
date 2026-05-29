@@ -105,7 +105,7 @@ Admin → Modules → Order Progress Tracker → Setup lets you:
   (`ActionsOrderprogress`) for the relevant card contexts (`ordercard`,
   `ordersuppliercard`, `propalcard`, `supplier_proposalcard`, `invoicecard`,
   `invoicesuppliercard`, `receptioncard`, `expeditioncard`) and renders during
-  `printCommonFooter`. A tiny jQuery snippet relocates the rendered tracker to
+  `formObjectOptions`. A tiny jQuery snippet relocates the rendered tracker to
   just below the card banner, so no template is patched.
 * **Native data only.** `OrderProgressResolver` walks the document chain with
   `fetchObjectLinked()` and reads native status constants

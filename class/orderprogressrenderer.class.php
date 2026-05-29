@@ -72,8 +72,10 @@ class OrderProgressRenderer
 		$classMode = $this->compact ? ' orderprogress-compact' : '';
 		$out  = '<div class="orderprogress-tracker'.$classMode.'" role="list" aria-label="'.dol_escape_htmltag($langs->trans('OrderProgressTitle')).'">';
 
+		$prevState = null;
 		foreach ($visible as $idx => $step) {
-			$out .= $this->renderStep($step, $user, ($idx > 0));
+			$out .= $this->renderStep($step, $user, ($idx > 0), $prevState);
+			$prevState = $step['state'];
 		}
 
 		$out .= '</div>';
@@ -89,7 +91,7 @@ class OrderProgressRenderer
 	 *  @param  bool   $withConnector  Draw a connector line before this step
 	 *  @return string                  HTML
 	 */
-	private function renderStep($step, $user, $withConnector)
+	private function renderStep($step, $user, $withConnector, $prevState = null)
 	{
 		global $langs;
 
@@ -99,10 +101,12 @@ class OrderProgressRenderer
 		// Tooltip: ref, status and date when we have a source document.
 		$tooltip = $this->buildTooltip($step);
 
-		// Connector inherits the "complete" look when the previous step is done;
-		// to keep it simple the connector class mirrors this step's reach state.
-		$connectorClass = in_array($state, array(OrderProgressResolver::STATE_COMPLETE, OrderProgressResolver::STATE_CURRENT))
-			? ' orderprogress-connector-complete' : '';
+		// The connector segment is "traveled" (green) only when BOTH the previous
+		// step and the current step are done — avoids a false green re-appearing
+		// after a pending gap (e.g. complete → pending → complete).
+		$donePrev = in_array($prevState, array(OrderProgressResolver::STATE_COMPLETE, OrderProgressResolver::STATE_CURRENT));
+		$doneSelf = in_array($state,     array(OrderProgressResolver::STATE_COMPLETE, OrderProgressResolver::STATE_CURRENT));
+		$connectorClass = ($donePrev && $doneSelf) ? ' orderprogress-connector-complete' : '';
 
 		$out = '<div class="orderprogress-step '.$stateClass.'" role="listitem"'
 			.($tooltip ? ' title="'.dol_escape_htmltag($tooltip).'"' : '').'>';

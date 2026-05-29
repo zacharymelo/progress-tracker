@@ -268,10 +268,14 @@ class OrderProgressResolver
 
 		$steps = array();
 
+		// If no proposal exists but an order does, the proposal stage was bypassed
+		// entirely — mark those steps skipped rather than pending.
+		$proposalSkipped = empty($propals) && !empty($orders);
+
 		// 1. Proposal created
 		$p = $this->pickDoc($propals);
 		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'propal',
-			$p ? self::STATE_COMPLETE : self::STATE_PENDING, $p);
+			$p ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $p);
 
 		// 2. Proposal signed/accepted
 		$pSigned = $this->pickDoc($propals, function ($o) {
@@ -279,7 +283,8 @@ class OrderProgressResolver
 			return ($s === 2 /*Propal::STATUS_SIGNED*/ || $s === 4 /*Propal::STATUS_BILLED*/);
 		});
 		$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'propal',
-			$pSigned ? self::STATE_COMPLETE : self::STATE_PENDING, $pSigned ? $pSigned : $p);
+			$pSigned ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING),
+			$pSigned ? $pSigned : $p);
 
 		// 3. Order created
 		$o = $this->pickDoc($orders);
@@ -566,9 +571,10 @@ class OrderProgressResolver
 				'invoice_paid' => $invId ? array(
 					'url' => '/compta/paiement/card.php?action=create&facid='.($unpaidInvId ?: $invId), 'perm' => array(array('facture', 'paiement'), array('facture', 'creer')),
 				) : null,
-				'order_closed' => $orderId ? array(
-					'url' => '/commande/card.php?id='.$orderId, 'perm' => $cCreer,
-				) : null,
+				// order_closed: no action link — closing is done via the native
+				// button on the order card itself; linking back to the same page
+				// would be redundant.
+				'order_closed' => null,
 			);
 		} else {
 			$spId  = $this->firstId('supplier_proposal');
@@ -605,9 +611,7 @@ class OrderProgressResolver
 				'invoice_paid' => $siId ? array(
 					'url' => '/fourn/facture/card.php?id='.($unpaidSiId ?: $siId), 'perm' => $siLire,
 				) : null,
-				'order_closed' => $soId ? array(
-					'url' => '/fourn/commande/card.php?id='.$soId, 'perm' => $soCreer,
-				) : null,
+				'order_closed' => null,
 			);
 		}
 

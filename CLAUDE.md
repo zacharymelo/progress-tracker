@@ -34,9 +34,10 @@ docs/PLAN.md                               Spec, status, roadmap
 - **Injection via hooks, not core edits.** Descriptor registers the flat
   `module_parts['hooks']` array for contexts: `ordercard`, `ordersuppliercard`,
   `propalcard`, `supplier_proposalcard`, `invoicecard`, `invoicesuppliercard`,
-  `receptioncard`, `expeditioncard`. The handler implements `printCommonFooter`
-  and a small jQuery snippet relocates the rendered tracker to just below the
-  card banner (`div.arearef`).
+  `receptioncard`, `expeditioncard`. The handler implements **`formObjectOptions`**
+  (NOT `printCommonFooter` — Dolibarr v22 calls executeHooks for it but silently
+  discards `$hookmanager->resprints`) and a small jQuery snippet relocates the
+  rendered tracker to just below the card banner (`div.arearef`).
 - **Resolver** walks the chain with `fetchObjectLinked()` (depth 2, cycle-safe),
   collects docs by normalized element type, and emits ordered steps with a
   state (`complete|current|pending|skipped|blocked`).

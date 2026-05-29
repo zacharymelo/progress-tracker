@@ -19,11 +19,12 @@
 	gap: 0;
 	width: 100%;
 	box-sizing: border-box;
-	margin: 8px 0 14px 0;
-	padding: 12px 6px;
+	margin: 10px 0 16px 0;
+	padding: 16px 10px 14px;
 	background: var(--colorbacktitle1, #fbfbfb);
 	border: 1px solid var(--colorblockborder, #e0e0e0);
 	border-radius: 6px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 	font-size: 12px;
 	line-height: 1.3;
 }
@@ -42,11 +43,12 @@
 /* Connector line drawn to the left of each step (except the first). */
 .orderprogress-connector {
 	position: absolute;
-	top: 13px;
+	top: 14px;
 	right: 50%;
 	width: 100%;
-	height: 3px;
+	height: 4px;
 	background: var(--orderprogress-line);
+	border-radius: 2px;
 	z-index: 0;
 }
 .orderprogress-connector-complete {
@@ -59,8 +61,8 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 26px;
-	height: 26px;
+	width: 28px;
+	height: 28px;
 	border-radius: 50%;
 	background: #ffffff;
 	border: 3px solid var(--orderprogress-pending);
