@@ -300,6 +300,10 @@ class OrderProgressResolver
 		// entirely — mark those steps skipped rather than pending.
 		$proposalSkipped = empty($propals) && !empty($orders);
 
+		// If no order exists but an invoice does, the order stage was bypassed
+		// (direct invoice without a PO) — mark order/shipment steps skipped.
+		$orderSkipped = empty($orders) && !empty($invoices);
+
 		// Pre-compute proposal states used by multiple steps below.
 		$p = $this->pickDoc($propals);
 		$pSigned = $this->pickDoc($propals, function ($o) {
@@ -344,21 +348,21 @@ class OrderProgressResolver
 		}
 
 		// 3. Order created
-		$o = $proposalRefused ? null : $this->pickDoc($orders);
+		$o = ($proposalRefused || $orderSkipped) ? null : $this->pickDoc($orders);
 		$steps[] = $this->makeStep('order_created', 'OrderProgressOrderCreated', 'OrderProgressOrderCreatedTodo', 'commande',
-			$proposalRefused ? self::STATE_SKIPPED : ($o ? self::STATE_COMPLETE : self::STATE_PENDING), $o);
+			($proposalRefused || $orderSkipped) ? self::STATE_SKIPPED : ($o ? self::STATE_COMPLETE : self::STATE_PENDING), $o);
 
 		// 4. Order validated (Commande::STATUS_VALIDATED=1 and beyond, not canceled=-1)
-		$oValid = $proposalRefused ? null : $this->pickDoc($orders, function ($x) {
+		$oValid = ($proposalRefused || $orderSkipped) ? null : $this->pickDoc($orders, function ($x) {
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 1);
 		});
 		$steps[] = $this->makeStep('order_validated', 'OrderProgressOrderValidated', 'OrderProgressOrderValidatedTodo', 'commande',
-			$proposalRefused ? self::STATE_SKIPPED : ($oValid ? self::STATE_COMPLETE : self::STATE_PENDING),
-			$proposalRefused ? null : ($oValid ? $oValid : $o));
+			($proposalRefused || $orderSkipped) ? self::STATE_SKIPPED : ($oValid ? self::STATE_COMPLETE : self::STATE_PENDING),
+			($proposalRefused || $orderSkipped) ? null : ($oValid ? $oValid : $o));
 
 		// 5. Shipment / delivery completed (only relevant when products require it)
-		if ($proposalRefused) {
+		if ($proposalRefused || $orderSkipped) {
 			$steps[] = $this->makeStep('shipment_done', 'OrderProgressShipmentDone', 'OrderProgressShipmentDoneTodo', 'shipping',
 				self::STATE_SKIPPED, null);
 		} else {
@@ -410,12 +414,12 @@ class OrderProgressResolver
 		}
 
 		// 8. Order closed
-		$oClosed = $proposalRefused ? null : $this->pickDoc($orders, function ($x) {
+		$oClosed = ($proposalRefused || $orderSkipped) ? null : $this->pickDoc($orders, function ($x) {
 			return (OrderProgressResolver::statusOf($x) === 3 /*Commande::STATUS_CLOSED*/);
 		});
 		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'OrderProgressOrderClosedTodo', 'commande',
-			$proposalRefused ? self::STATE_SKIPPED : ($oClosed ? self::STATE_COMPLETE : self::STATE_PENDING),
-			$proposalRefused ? null : ($oClosed ? $oClosed : $o));
+			($proposalRefused || $orderSkipped) ? self::STATE_SKIPPED : ($oClosed ? self::STATE_COMPLETE : self::STATE_PENDING),
+			($proposalRefused || $orderSkipped) ? null : ($oClosed ? $oClosed : $o));
 
 		return $this->markCurrent($steps);
 	}
@@ -434,49 +438,58 @@ class OrderProgressResolver
 
 		$steps = array();
 
+		// If no order exists but an invoice does, the order stage was bypassed
+		// (direct supplier invoice without a PO) — mark order/reception steps skipped.
+		$orderSkipped = empty($orders) && !empty($invoices);
+
 		// 1. Supplier proposal / request created (optional)
 		$sp = $this->pickDoc($proposals);
 		$steps[] = $this->makeStep('supplier_proposal_created', 'OrderProgressSupplierProposalCreated', 'OrderProgressSupplierProposalCreatedTodo', 'supplier_proposal',
 			$sp ? self::STATE_COMPLETE : self::STATE_SKIPPED, $sp);
 
 		// 2. Supplier order created
-		$o = $this->pickDoc($orders);
+		$o = $orderSkipped ? null : $this->pickDoc($orders);
 		$steps[] = $this->makeStep('order_created', 'OrderProgressSupplierOrderCreated', 'OrderProgressSupplierOrderCreatedTodo', 'order_supplier',
-			$o ? self::STATE_COMPLETE : self::STATE_PENDING, $o);
+			$orderSkipped ? self::STATE_SKIPPED : ($o ? self::STATE_COMPLETE : self::STATE_PENDING), $o);
 
 		// 3. Supplier order approved (CommandeFournisseur::STATUS_ACCEPTED=2 .. RECEIVED_COMPLETELY=5;
 		//    excludes CANCELED=6, CANCELED_AFTER_ORDER=7, REFUSED=9)
-		$oApproved = $this->pickDoc($orders, function ($x) {
+		$oApproved = $orderSkipped ? null : $this->pickDoc($orders, function ($x) {
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 2 && $s <= 5);
 		});
 		$steps[] = $this->makeStep('order_approved', 'OrderProgressSupplierOrderApproved', 'OrderProgressSupplierOrderApprovedTodo', 'order_supplier',
-			$oApproved ? self::STATE_COMPLETE : self::STATE_PENDING, $oApproved ? $oApproved : $o);
+			$orderSkipped ? self::STATE_SKIPPED : ($oApproved ? self::STATE_COMPLETE : self::STATE_PENDING), $oApproved ? $oApproved : $o);
 
 		// 4. Supplier order sent/placed (STATUS_ORDERSENT=3 .. RECEIVED_COMPLETELY=5)
-		$oSent = $this->pickDoc($orders, function ($x) {
+		$oSent = $orderSkipped ? null : $this->pickDoc($orders, function ($x) {
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 3 && $s <= 5);
 		});
 		$steps[] = $this->makeStep('order_sent', 'OrderProgressSupplierOrderSent', 'OrderProgressSupplierOrderSentTodo', 'order_supplier',
-			$oSent ? self::STATE_COMPLETE : self::STATE_PENDING, $oSent ? $oSent : $o);
+			$orderSkipped ? self::STATE_SKIPPED : ($oSent ? self::STATE_COMPLETE : self::STATE_PENDING), $oSent ? $oSent : $o);
 
 		// 5. Reception completed (reception closed OR order received completely STATUS_RECEIVED_COMPLETELY=5)
-		$recDone = $this->pickDoc($receptions, function ($x) {
-			$s = OrderProgressResolver::statusOf($x);
-			return ($s !== null && $s >= 2 /*Reception::STATUS_CLOSED*/);
-		});
-		$orderReceived = $this->pickDoc($orders, function ($x) {
-			return (OrderProgressResolver::statusOf($x) === 5 /*STATUS_RECEIVED_COMPLETELY*/);
-		});
-		$recAny = $this->pickDoc($receptions);
-		if (!empty($receptions) || $orderReceived) {
-			$state = ($recDone || $orderReceived) ? self::STATE_COMPLETE : self::STATE_PENDING;
+		if ($orderSkipped) {
 			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
-				$state, $recDone ? $recDone : $recAny);
+				self::STATE_SKIPPED, null);
 		} else {
-			$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
-				self::STATE_PENDING, null);
+			$recDone = $this->pickDoc($receptions, function ($x) {
+				$s = OrderProgressResolver::statusOf($x);
+				return ($s !== null && $s >= 2 /*Reception::STATUS_CLOSED*/);
+			});
+			$orderReceived = $this->pickDoc($orders, function ($x) {
+				return (OrderProgressResolver::statusOf($x) === 5 /*STATUS_RECEIVED_COMPLETELY*/);
+			});
+			$recAny = $this->pickDoc($receptions);
+			if (!empty($receptions) || $orderReceived) {
+				$state = ($recDone || $orderReceived) ? self::STATE_COMPLETE : self::STATE_PENDING;
+				$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
+					$state, $recDone ? $recDone : $recAny);
+			} else {
+				$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
+					self::STATE_PENDING, null);
+			}
 		}
 
 		// 6. Supplier invoice received
@@ -492,11 +505,11 @@ class OrderProgressResolver
 			$invPaid ? self::STATE_COMPLETE : self::STATE_PENDING, $invPaid ? $invPaid : $inv);
 
 		// 8. Order closed (CommandeFournisseur::STATUS_RECEIVED_COMPLETELY=5 is the natural terminal state)
-		$oClosed = $this->pickDoc($orders, function ($x) {
+		$oClosed = $orderSkipped ? null : $this->pickDoc($orders, function ($x) {
 			return (OrderProgressResolver::statusOf($x) === 5);
 		});
 		$steps[] = $this->makeStep('order_closed', 'OrderProgressOrderClosed', 'OrderProgressOrderClosedTodo', 'order_supplier',
-			$oClosed ? self::STATE_COMPLETE : self::STATE_PENDING, $oClosed ? $oClosed : $o);
+			$orderSkipped ? self::STATE_SKIPPED : ($oClosed ? self::STATE_COMPLETE : self::STATE_PENDING), $oClosed ? $oClosed : $o);
 
 		return $this->markCurrent($steps);
 	}
