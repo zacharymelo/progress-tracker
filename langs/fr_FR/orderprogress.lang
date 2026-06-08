@@ -48,6 +48,21 @@ OrderProgressSupplierInvoiceReceivedTodo = À enregistrer
 OrderProgressSupplierInvoicePaid = Payé
 OrderProgressSupplierInvoicePaidTodo = À payer
 
+# Infobulles d'aide — affichées sur les étapes en cours ou en attente
+OrderProgressHintProposalCreated = Ouvrir le formulaire pour créer un devis client
+OrderProgressHintProposalSigned = Envoyer le devis au client et le marquer accepté lorsqu'il confirme
+OrderProgressHintOrderCreated = Créer la commande pour continuer
+OrderProgressHintOrderValidated = Ouvrir la commande et la valider pour la mettre en cours
+OrderProgressHintShipmentDone = Créer une expédition et la clôturer une fois les marchandises envoyées
+OrderProgressHintInvoiceCreated = Créer la facture à partir de cette commande
+OrderProgressHintInvoicePaid = Ouvrir la facture pour enregistrer un règlement
+OrderProgressHintOrderClosed = Clôturer la commande une fois tout réalisé
+OrderProgressHintSupplierProposalCreated = Créer une demande de prix auprès du fournisseur
+OrderProgressHintOrderApproved = Ouvrir la commande et l'approuver pour continuer
+OrderProgressHintOrderSent = Marquer la commande comme envoyée et passée au fournisseur
+OrderProgressHintReceptionDone = Valider la livraison puis clôturer la réception pour finaliser cette étape
+OrderProgressHintInvoiceReceived = Enregistrer la facture fournisseur sur cette commande
+
 # Setup page
 OrderProgressSetup = Configuration du suivi de progression
 OrderProgressSetupPage = Configurez où le suivi de progression est affiché et son apparence.

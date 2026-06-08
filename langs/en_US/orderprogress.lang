@@ -48,6 +48,21 @@ OrderProgressSupplierInvoiceReceivedTodo = To book invoice
 OrderProgressSupplierInvoicePaid = Paid
 OrderProgressSupplierInvoicePaidTodo = To pay
 
+# Step hints — shown as tooltip guidance on current/pending steps
+OrderProgressHintProposalCreated = Open the form to draft a quotation for this customer
+OrderProgressHintProposalSigned = Send the quotation to the customer and mark it accepted when they confirm
+OrderProgressHintOrderCreated = Create the order to proceed
+OrderProgressHintOrderValidated = Open the order and validate it to put it in process
+OrderProgressHintShipmentDone = Create a shipment and close it once the goods are dispatched
+OrderProgressHintInvoiceCreated = Create the invoice from this order
+OrderProgressHintInvoicePaid = Open the invoice to record a payment
+OrderProgressHintOrderClosed = Close the order once everything is fulfilled
+OrderProgressHintSupplierProposalCreated = Create a request for quotation from this supplier
+OrderProgressHintOrderApproved = Open the order and approve it to proceed
+OrderProgressHintOrderSent = Mark the order as sent and placed with the supplier
+OrderProgressHintReceptionDone = Validate the delivery then close the reception to complete this step
+OrderProgressHintInvoiceReceived = Book the supplier invoice against this order
+
 # Setup page
 OrderProgressSetup = Order Progress Tracker setup
 OrderProgressSetupPage = Configure where the progress tracker is shown and how it looks.

@@ -41,6 +41,23 @@ class OrderProgressRenderer
 	/** @var bool Render current/pending steps as links to the next native action */
 	public $actionLinks = true;
 
+	/** @var array<string,string> Hint lang key per step — shown in tooltip for open steps */
+	private static $hintKeys = array(
+		'proposal_created'          => 'OrderProgressHintProposalCreated',
+		'proposal_signed'           => 'OrderProgressHintProposalSigned',
+		'order_created'             => 'OrderProgressHintOrderCreated',
+		'order_validated'           => 'OrderProgressHintOrderValidated',
+		'shipment_done'             => 'OrderProgressHintShipmentDone',
+		'invoice_created'           => 'OrderProgressHintInvoiceCreated',
+		'invoice_paid'              => 'OrderProgressHintInvoicePaid',
+		'order_closed'              => 'OrderProgressHintOrderClosed',
+		'supplier_proposal_created' => 'OrderProgressHintSupplierProposalCreated',
+		'order_approved'            => 'OrderProgressHintOrderApproved',
+		'order_sent'                => 'OrderProgressHintOrderSent',
+		'reception_done'            => 'OrderProgressHintReceptionDone',
+		'invoice_received'          => 'OrderProgressHintInvoiceReceived',
+	);
+
 	/**
 	 *  Render the tracker.
 	 *
@@ -210,7 +227,22 @@ class OrderProgressRenderer
 		if (empty($parts) && $step['state'] === OrderProgressResolver::STATE_SKIPPED) {
 			return $langs->trans('OrderProgressNotApplicable');
 		}
-		return implode(' — ', $parts);
+
+		$isOpen = in_array($step['state'], array(OrderProgressResolver::STATE_CURRENT, OrderProgressResolver::STATE_PENDING));
+		$hint = '';
+		if ($isOpen && !empty($step['key']) && isset(self::$hintKeys[$step['key']])) {
+			$key = self::$hintKeys[$step['key']];
+			$translated = $langs->trans($key);
+			if ($translated !== $key) {
+				$hint = $translated;
+			}
+		}
+
+		$docInfo = implode(' — ', $parts);
+		if ($hint === '') {
+			return $docInfo;
+		}
+		return $docInfo !== '' ? $docInfo."\n".$hint : $hint;
 	}
 
 	/**

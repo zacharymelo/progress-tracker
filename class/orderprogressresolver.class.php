@@ -483,7 +483,10 @@ class OrderProgressResolver
 			});
 			$recAny = $this->pickDoc($receptions);
 			if (!empty($receptions) || $orderReceived) {
-				$state = ($recDone || $orderReceived) ? self::STATE_COMPLETE : self::STATE_PENDING;
+				// $orderReceived is only a fallback when no reception document exists at all.
+				// A validated-but-not-closed reception (status 1) moves the order to status 5,
+				// so we must not treat $orderReceived as "done" while $recAny is still open.
+				$state = ($recDone || (!$recAny && $orderReceived)) ? self::STATE_COMPLETE : self::STATE_PENDING;
 				$steps[] = $this->makeStep('reception_done', 'OrderProgressReception', 'OrderProgressReceptionTodo', 'reception',
 					$state, $recDone ? $recDone : $recAny);
 			} else {
@@ -683,7 +686,7 @@ class OrderProgressResolver
 					'url' => '/fourn/commande/card.php?id='.$soId, 'perm' => $soCreer,
 				) : null,
 				'reception_done' => (!$recId && $soId) ? array(
-					'url' => '/reception/card.php?action=create&origin=commande_fournisseur&origin_id='.$soId, 'perm' => array(array('reception', 'creer')),
+					'url' => '/reception/card.php?action=create&origin=order_supplier&origin_id='.$soId, 'perm' => array(array('reception', 'creer')),
 				) : null,
 				'invoice_received' => (!$siId && $soId) ? array(
 					'url' => '/fourn/facture/card.php?action=create&origin=order_supplier&originid='.$soId.'&origin_id='.$soId.$socParam, 'perm' => $siCreer,
