@@ -300,12 +300,23 @@ class OrderProgressResolver
 		// entirely — mark those steps skipped rather than pending.
 		$proposalSkipped = empty($propals) && !empty($orders);
 
-		// If no order exists but an invoice does, the order stage was bypassed
+		// If no order exists but a validated invoice does, the order stage was bypassed
 		// (direct invoice without a PO) — mark order/shipment steps skipped.
-		$orderSkipped = empty($orders) && !empty($invoices);
+		// A draft invoice (status 0) is not yet real and must not trigger this.
+		$orderSkipped = empty($orders) && (bool) $this->pickDoc($invoices, function ($x) {
+			$s = OrderProgressResolver::statusOf($x);
+			return ($s !== null && $s >= 1);
+		});
 
 		// Pre-compute proposal states used by multiple steps below.
-		$p = $this->pickDoc($propals);
+		// $pValid  — validated or beyond (status ≥ 1, i.e. sent to customer); drives completion.
+		// $pAny    — any proposal including draft; used as a doc link fallback only.
+		// $pSigned — signed or already billed; drives the acceptance step.
+		$pValid  = $this->pickDoc($propals, function ($o) {
+			$s = OrderProgressResolver::statusOf($o);
+			return ($s !== null && $s >= 1 /*Propal::STATUS_VALIDATED+, not draft*/);
+		});
+		$pAny    = $this->pickDoc($propals);
 		$pSigned = $this->pickDoc($propals, function ($o) {
 			$s = OrderProgressResolver::statusOf($o);
 			return ($s === 2 /*Propal::STATUS_SIGNED*/ || $s === 4 /*Propal::STATUS_BILLED*/);
@@ -331,20 +342,22 @@ class OrderProgressResolver
 			&& !$proposalSkipped
 		);
 
-		// 1. Proposal created
+		// 1. Proposal created — only a validated/sent proposal (status ≥ 1) counts as done.
+		// A draft proposal links through $pAny so the user can still open it.
 		$steps[] = $this->makeStep('proposal_created', 'OrderProgressProposalCreated', 'OrderProgressProposalCreatedTodo', 'propal',
-			$p ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $p);
+			$pValid ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING), $pValid ?: $pAny);
 
 		// 2. Proposal signed/accepted — or blocked when the proposal was refused/not signed.
 		if ($proposalRefused) {
 			// Show the refused proposal doc so the user can click to view it, but
 			// mark acceptance as blocked and nullify all downstream steps.
+			// $anchorPropal is the refused proposal object; $pRefused was never defined.
 			$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalRefused', 'OrderProgressProposalRefused', 'propal',
-				self::STATE_BLOCKED, $pRefused);
+				self::STATE_BLOCKED, $anchorPropal);
 		} else {
 			$steps[] = $this->makeStep('proposal_signed', 'OrderProgressProposalSigned', 'OrderProgressProposalSignedTodo', 'propal',
 				$pSigned ? self::STATE_COMPLETE : ($proposalSkipped ? self::STATE_SKIPPED : self::STATE_PENDING),
-				$pSigned ? $pSigned : $p);
+				$pSigned ?: $pValid ?: $pAny);
 		}
 
 		// 3. Order created
@@ -382,11 +395,16 @@ class OrderProgressResolver
 			}
 		}
 
-		// 6. Invoice created
-		$inv = $proposalRefused ? null : $this->pickDoc($invoices);
+		// 6. Invoice created — only a validated (non-draft) invoice counts as done.
+		// $invAny includes drafts so we can still link to an in-progress draft.
+		$inv    = $proposalRefused ? null : $this->pickDoc($invoices, function ($x) {
+			$s = OrderProgressResolver::statusOf($x);
+			return ($s !== null && $s >= 1 /*Facture::STATUS_VALIDATED+, not draft*/);
+		});
+		$invAny = $proposalRefused ? null : $this->pickDoc($invoices);
 		$steps[] = $this->makeStep('invoice_created', 'OrderProgressInvoiceCreated', 'OrderProgressInvoiceCreatedTodo', 'facture',
 			$proposalRefused ? self::STATE_SKIPPED : ($inv ? self::STATE_COMPLETE : self::STATE_PENDING),
-			$proposalRefused ? null : $inv);
+			$proposalRefused ? null : ($inv ?: $invAny));
 
 		// 7. Invoice paid (paid / partially paid / unpaid)
 		if ($proposalRefused) {
@@ -407,7 +425,7 @@ class OrderProgressResolver
 				$paidDoc = $invPartial;
 			} else {
 				$paidState = self::STATE_PENDING;
-				$paidDoc = $inv;
+				$paidDoc = $inv ?: $invAny;
 			}
 			$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
 				$paidState, $paidDoc);
@@ -438,14 +456,23 @@ class OrderProgressResolver
 
 		$steps = array();
 
-		// If no order exists but an invoice does, the order stage was bypassed
+		// If no order exists but a validated invoice does, the order stage was bypassed
 		// (direct supplier invoice without a PO) — mark order/reception steps skipped.
-		$orderSkipped = empty($orders) && !empty($invoices);
+		// A draft invoice (status 0) is not yet real and must not trigger this.
+		$orderSkipped = empty($orders) && (bool) $this->pickDoc($invoices, function ($x) {
+			$s = OrderProgressResolver::statusOf($x);
+			return ($s !== null && $s >= 1);
+		});
 
-		// 1. Supplier proposal / request created (optional)
-		$sp = $this->pickDoc($proposals);
+		// 1. Supplier proposal / request created (optional) — only a validated request counts
+		// as done; a draft is linked via $spAny but does not mark the step complete.
+		$spValid = $this->pickDoc($proposals, function ($x) {
+			$s = OrderProgressResolver::statusOf($x);
+			return ($s !== null && $s >= 1 /*validated+, not draft*/);
+		});
+		$spAny   = $this->pickDoc($proposals);
 		$steps[] = $this->makeStep('supplier_proposal_created', 'OrderProgressSupplierProposalCreated', 'OrderProgressSupplierProposalCreatedTodo', 'supplier_proposal',
-			$sp ? self::STATE_COMPLETE : self::STATE_SKIPPED, $sp);
+			$spValid ? self::STATE_COMPLETE : self::STATE_SKIPPED, $spValid ?: $spAny);
 
 		// 2. Supplier order created
 		$o = $orderSkipped ? null : $this->pickDoc($orders);
@@ -495,17 +522,22 @@ class OrderProgressResolver
 			}
 		}
 
-		// 6. Supplier invoice received
-		$inv = $this->pickDoc($invoices);
+		// 6. Supplier invoice received — only a validated (non-draft) invoice counts as done.
+		// $invAny includes drafts so we can still link to an in-progress draft.
+		$inv    = $this->pickDoc($invoices, function ($x) {
+			$s = OrderProgressResolver::statusOf($x);
+			return ($s !== null && $s >= 1 /*validated+, not draft*/);
+		});
+		$invAny = $this->pickDoc($invoices);
 		$steps[] = $this->makeStep('invoice_received', 'OrderProgressSupplierInvoiceReceived', 'OrderProgressSupplierInvoiceReceivedTodo', 'invoice_supplier',
-			$inv ? self::STATE_COMPLETE : self::STATE_PENDING, $inv);
+			$inv ? self::STATE_COMPLETE : self::STATE_PENDING, $inv ?: $invAny);
 
 		// 7. Supplier invoice paid
 		$invPaid = $this->pickDoc($invoices, function ($x) {
 			return (!empty($x->paye));
 		});
 		$steps[] = $this->makeStep('invoice_paid', 'OrderProgressSupplierInvoicePaid', 'OrderProgressSupplierInvoicePaidTodo', 'invoice_supplier',
-			$invPaid ? self::STATE_COMPLETE : self::STATE_PENDING, $invPaid ? $invPaid : $inv);
+			$invPaid ? self::STATE_COMPLETE : self::STATE_PENDING, $invPaid ?: $inv ?: $invAny);
 
 		// 8. Order closed (CommandeFournisseur::STATUS_RECEIVED_COMPLETELY=5 is the natural terminal state)
 		$oClosed = $orderSkipped ? null : $this->pickDoc($orders, function ($x) {

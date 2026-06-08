@@ -238,11 +238,10 @@ class OrderProgressRenderer
 			}
 		}
 
-		$docInfo = implode(' — ', $parts);
-		if ($hint === '') {
-			return $docInfo;
+		if ($hint !== '') {
+			$parts[] = $hint;
 		}
-		return $docInfo !== '' ? $docInfo."\n".$hint : $hint;
+		return implode(' — ', $parts);
 	}
 
 	/**
