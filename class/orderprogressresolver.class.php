@@ -311,7 +311,7 @@ class OrderProgressResolver
 		// A validated order with a zero total has nothing to invoice or collect.
 		// Skip the invoice and payment steps rather than leaving them perpetually pending.
 		$zeroValueOrder = false;
-		if (!$proposalSkipped && !$orderSkipped) {
+		if (!$orderSkipped) {
 			foreach ($orders as $ord) {
 				$s = OrderProgressResolver::statusOf($ord);
 				if ($s !== null && $s >= 1 && isset($ord->total_ttc) && (float) $ord->total_ttc == 0.0) {
