@@ -308,6 +308,19 @@ class OrderProgressResolver
 			return ($s !== null && $s >= 1);
 		});
 
+		// A validated order with a zero total has nothing to invoice or collect.
+		// Skip the invoice and payment steps rather than leaving them perpetually pending.
+		$zeroValueOrder = false;
+		if (!$proposalSkipped && !$orderSkipped) {
+			foreach ($orders as $ord) {
+				$s = OrderProgressResolver::statusOf($ord);
+				if ($s !== null && $s >= 1 && isset($ord->total_ttc) && (float) $ord->total_ttc == 0.0) {
+					$zeroValueOrder = true;
+					break;
+				}
+			}
+		}
+
 		// Pre-compute proposal states used by multiple steps below.
 		// $pValid  — validated or beyond (status ≥ 1, i.e. sent to customer); drives completion.
 		// $pAny    — any proposal including draft; used as a doc link fallback only.
@@ -397,17 +410,19 @@ class OrderProgressResolver
 
 		// 6. Invoice created — only a validated (non-draft) invoice counts as done.
 		// $invAny includes drafts so we can still link to an in-progress draft.
-		$inv    = $proposalRefused ? null : $this->pickDoc($invoices, function ($x) {
+		// Zero-value orders need no invoicing; skip both invoice steps.
+		$skipInvoicing = $proposalRefused || $zeroValueOrder;
+		$inv    = $skipInvoicing ? null : $this->pickDoc($invoices, function ($x) {
 			$s = OrderProgressResolver::statusOf($x);
 			return ($s !== null && $s >= 1 /*Facture::STATUS_VALIDATED+, not draft*/);
 		});
-		$invAny = $proposalRefused ? null : $this->pickDoc($invoices);
+		$invAny = $skipInvoicing ? null : $this->pickDoc($invoices);
 		$steps[] = $this->makeStep('invoice_created', 'OrderProgressInvoiceCreated', 'OrderProgressInvoiceCreatedTodo', 'facture',
-			$proposalRefused ? self::STATE_SKIPPED : ($inv ? self::STATE_COMPLETE : self::STATE_PENDING),
-			$proposalRefused ? null : ($inv ?: $invAny));
+			$skipInvoicing ? self::STATE_SKIPPED : ($inv ? self::STATE_COMPLETE : self::STATE_PENDING),
+			$skipInvoicing ? null : ($inv ?: $invAny));
 
 		// 7. Invoice paid (paid / partially paid / unpaid)
-		if ($proposalRefused) {
+		if ($skipInvoicing) {
 			$steps[] = $this->makeStep('invoice_paid', 'OrderProgressInvoicePaid', 'OrderProgressInvoicePaidTodo', 'facture',
 				self::STATE_SKIPPED, null);
 		} else {
