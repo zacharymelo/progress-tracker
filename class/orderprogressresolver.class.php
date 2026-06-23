@@ -732,8 +732,14 @@ class OrderProgressResolver
 				'order_sent' => $soId ? array(
 					'url' => '/fourn/commande/card.php?id='.$soId, 'perm' => $soCreer,
 				) : null,
-				'reception_done' => (!$recId && $soId) ? array(
-					'url' => '/reception/card.php?action=create&origin=order_supplier&origin_id='.$soId, 'perm' => array(array('reception', 'creer')),
+				// Receiving goods against a purchase order is done on the order's
+				// native dispatch page, NOT reception/card.php — the latter has no
+				// origin-driven create flow for order_supplier and renders an empty
+				// card. dispatch.php is the universal entry point and also creates
+				// Reception objects when the Reception module is enabled.
+				'reception_done' => $soId ? array(
+					'url' => '/fourn/commande/dispatch.php?id='.$soId,
+					'perm' => array(array('fournisseur', 'commande', 'receptionner'), array('supplier_order', 'receptionner'), array('reception', 'creer')),
 				) : null,
 				'invoice_received' => (!$siId && $soId) ? array(
 					'url' => '/fourn/facture/card.php?action=create&origin=order_supplier&originid='.$soId.'&origin_id='.$soId.$socParam, 'perm' => $siCreer,
